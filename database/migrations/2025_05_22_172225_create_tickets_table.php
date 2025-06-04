@@ -14,12 +14,20 @@ return new class extends Migration
         Schema::create('tickets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('queue_id')->constrained()->onDelete('cascade');
-            $table->string('number');
-            $table->string('status')->default('waiting'); // waiting, called, served, skipped, absent
-            $table->string('session_id')->nullable(); // Pour les clients web
+            $table->string('code_ticket')->unique();
+            $table->string('name');
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->enum('status', ['waiting', 'called', 'served', 'skipped'])->default('waiting');
+            $table->boolean('wants_notifications')->default(false);
+            $table->string('notification_channel')->nullable(); // 'email' ou 'sms'
             $table->timestamp('called_at')->nullable();
             $table->timestamp('served_at')->nullable();
             $table->timestamps();
+
+            // Index pour améliorer les performances
+            $table->index(['queue_id', 'status']);
+            $table->index(['queue_id', 'created_at']);
         });
     }
 

@@ -2,6 +2,10 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\QueueController;
+use App\Http\Controllers\Admin\TicketController;
+use App\Livewire\Admin\QueueTickets;
+use App\Livewire\Admin\QueueTicketsHistory;
 
 Route::get('/', function () {
     return view('welcome');
@@ -37,7 +41,18 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('dashboard');
-    Route::resource('queues', App\Http\Controllers\Admin\QueueController::class);
+
+    Route::resource('queues', QueueController::class);
+
+    // Routes pour les tickets dans les files d'attente
+    Route::prefix('queues/{queue}/tickets')->name('queues.tickets.')->group(function () {
+        Route::get('/', QueueTickets::class)->name('index');
+        Route::get('/history', QueueTicketsHistory::class)->name('history');
+        Route::post('/', [QueueTickets::class, 'store'])->name('store');
+        Route::delete('/{ticket}', [QueueTickets::class, 'destroy'])->name('destroy');
+        Route::patch('/{ticket}/status', [QueueTickets::class, 'updateStatus'])->name('status');
+        Route::put('/{ticket}', [QueueTickets::class, 'update'])->name('update');
+    });
 });
 
 require __DIR__.'/auth.php';

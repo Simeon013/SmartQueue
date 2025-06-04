@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('status')->default('active'); // active, paused, closed
             $table->json('settings')->nullable(); // Configuration spécifique (délai d'absence, notifications, etc.)
+            $table->string('code')->unique()->nullable();
             $table->timestamps();
         });
     }

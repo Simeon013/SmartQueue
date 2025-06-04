@@ -13,6 +13,8 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="font-sans antialiased bg-[#fdf6ee] overflow-x-hidden">
     <div class="min-h-screen flex">
@@ -102,5 +104,6 @@
             </main>
         </div>
     </div>
+    @livewireScripts
 </body>
 </html>
