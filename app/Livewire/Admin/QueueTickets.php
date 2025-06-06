@@ -224,7 +224,7 @@ class QueueTickets extends Component
                     break;
             }
 
-            $this->dispatch('ticket-status-updated');
+            $this->dispatch('ticket-updated');
             $this->dispatch('$refresh');
 
         } catch (\Exception $e) {

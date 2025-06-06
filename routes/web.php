@@ -8,11 +8,21 @@ use App\Livewire\Admin\QueueTickets;
 use App\Livewire\Admin\QueueTicketsHistory;
 
 Route::get('/', function () {
-    return view('welcome');
-});
+    return view('public.queues.index');
+})->name('public.queues.index');
+
+Route::post('/find-queue', [App\Http\Controllers\Public\QueueController::class, 'find'])->name('public.queue.find');
+
+// Routes d'affichage des files d'attente
+// Mettre la route par code avant la route par ID
+Route::get('/q/{code}', [App\Http\Controllers\Public\QueueController::class, 'showByCode'])->name('public.queue.show.code');
+Route::get('/q/{queue}', [App\Http\Controllers\Public\QueueController::class, 'show'])->name('public.queue.show');
+
+Route::get('/q/{queue}/status', [App\Http\Controllers\Public\QueueController::class, 'status'])->name('public.queue.status');
+Route::post('/q/{queue}/join', [App\Http\Controllers\Public\QueueController::class, 'join'])->name('public.queue.join');
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return view('admin.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -20,12 +30,6 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
-// Routes publiques
-Route::get('/q/{queue}', [App\Http\Controllers\Public\QueueController::class, 'show'])->name('public.queue.show');
-Route::post('/q/{queue}/join', [App\Http\Controllers\Public\QueueController::class, 'join'])->name('public.queue.join');
-Route::get('/q/{queue}/status', [App\Http\Controllers\Public\QueueController::class, 'status'])->name('public.queue.status');
-Route::get('/q/{code}', [App\Http\Controllers\Public\QueueController::class, 'showByCode'])->name('public.queue.show.code');
 
 // Routes agent
 Route::middleware(['auth', 'role:agent'])->prefix('agent')->name('agent.')->group(function () {

@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('queue_id')->constrained()->onDelete('cascade');
             $table->string('code_ticket')->unique();
-            $table->string('name');
+            $table->integer('number')->nullable();
+            $table->string('name')->nullable();
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->enum('status', ['waiting', 'called', 'served', 'skipped'])->default('waiting');
@@ -23,11 +24,14 @@ return new class extends Migration
             $table->string('notification_channel')->nullable(); // 'email' ou 'sms'
             $table->timestamp('called_at')->nullable();
             $table->timestamp('served_at')->nullable();
+            $table->string('session_id')->nullable();
             $table->timestamps();
 
             // Index pour améliorer les performances
             $table->index(['queue_id', 'status']);
             $table->index(['queue_id', 'created_at']);
+            $table->index('session_id');
+            $table->index('number');
         });
     }
 

@@ -21,6 +21,7 @@ class Ticket extends Model
         'notification_channel',
         'called_at',
         'served_at',
+        'session_id',
     ];
 
     protected $casts = [
