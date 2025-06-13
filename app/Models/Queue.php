@@ -11,12 +11,12 @@ class Queue extends Model
 
     protected $fillable = [
         'name',
-        'status',
-        'settings',
+        'establishment_id',
+        'is_active'
     ];
 
     protected $casts = [
-        'settings' => 'array',
+        'is_active' => 'boolean',
     ];
 
     protected static function boot()
@@ -45,5 +45,10 @@ class Queue extends Model
     public function activeTickets()
     {
         return $this->tickets()->whereIn('status', ['waiting', 'called']);
+    }
+
+    public function establishment()
+    {
+        return $this->belongsTo(Establishment::class);
     }
 }

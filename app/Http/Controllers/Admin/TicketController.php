@@ -34,23 +34,17 @@ class TicketController extends Controller
      */
     public function store(Request $request, Queue $queue)
     {
+        // Plus de validation sur name, email, phone
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
             'wants_notifications' => 'boolean',
             'notification_channel' => 'required_if:wants_notifications,true|in:email,sms',
         ]);
 
-        // Générer le numéro du ticket
         $lastTicket = $queue->tickets()->latest()->first();
         $number = $lastTicket ? $lastTicket->number + 1 : 1;
 
         $ticket = $queue->tickets()->create([
             'number' => $number,
-            'name' => $validated['name'],
-            'email' => $validated['email'] ?? null,
-            'phone' => $validated['phone'] ?? null,
             'status' => 'waiting',
             'wants_notifications' => $validated['wants_notifications'] ?? false,
             'notification_channel' => $validated['notification_channel'] ?? null,
@@ -90,9 +84,6 @@ class TicketController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
             'status' => 'required|in:waiting,called,served,skipped',
             'wants_notifications' => 'boolean',
             'notification_channel' => 'required_if:wants_notifications,true|in:email,sms',
@@ -100,7 +91,6 @@ class TicketController extends Controller
 
         $ticket->update($validated);
 
-        // Mettre à jour les timestamps si nécessaire
         if ($validated['status'] === 'called' && !$ticket->called_at) {
             $ticket->update(['called_at' => now()]);
         } elseif ($validated['status'] === 'served' && !$ticket->served_at) {

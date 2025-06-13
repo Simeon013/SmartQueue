@@ -13,9 +13,7 @@ class Ticket extends Model
     protected $fillable = [
         'queue_id',
         'code_ticket',
-        'name',
-        'email',
-        'phone',
+        'number',
         'status',
         'wants_notifications',
         'notification_channel',

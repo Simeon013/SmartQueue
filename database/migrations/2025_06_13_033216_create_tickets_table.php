@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateTicketsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -16,9 +16,6 @@ return new class extends Migration
             $table->foreignId('queue_id')->constrained()->onDelete('cascade');
             $table->string('code_ticket')->unique();
             $table->integer('number')->nullable();
-            $table->string('name')->nullable();
-            $table->string('email')->nullable();
-            $table->string('phone')->nullable();
             $table->enum('status', ['waiting', 'called', 'served', 'skipped'])->default('waiting');
             $table->boolean('wants_notifications')->default(false);
             $table->string('notification_channel')->nullable(); // 'email' ou 'sms'
@@ -42,4 +39,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('tickets');
     }
-};
+}

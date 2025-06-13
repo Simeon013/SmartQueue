@@ -39,13 +39,10 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 
     /**
      * Check if the user is an admin.
@@ -65,5 +62,20 @@ class User extends Authenticatable
     public function isAgent(): bool
     {
         return $this->role === 'agent';
+    }
+
+    public function establishments()
+    {
+        return $this->belongsToMany(Establishment::class, 'establishment_user')
+            ->withTimestamps();
+    }
+
+    public function managedQueues()
+    {
+        return Queue::whereHas('establishment', function ($query) {
+            $query->whereHas('admins', function ($q) {
+                $q->where('users.id', $this->id);
+            });
+        });
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Queue;
 use App\Models\Ticket;
+use App\Models\Establishment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,14 +20,15 @@ class QueueController extends Controller
 
     public function create()
     {
-        return view('admin.queues.create');
+        $establishments = Establishment::all();
+        return view('admin.queues.create', compact('establishments'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'establishment_id' => 'required|exists:establishments,id',
             'is_active' => 'boolean',
         ]);
 
@@ -65,14 +67,15 @@ class QueueController extends Controller
 
     public function edit(Queue $queue)
     {
-        return view('admin.queues.edit', compact('queue'));
+        $establishments = Establishment::all();
+        return view('admin.queues.edit', compact('queue', 'establishments'));
     }
 
     public function update(Request $request, Queue $queue)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'establishment_id' => 'required|exists:establishments,id',
             'is_active' => 'boolean',
         ]);
 

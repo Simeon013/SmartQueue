@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\QueueController;
 use App\Http\Controllers\Admin\TicketController;
 use App\Livewire\Admin\QueueTickets;
 use App\Livewire\Admin\QueueTicketsHistory;
+use App\Http\Controllers\Admin\EstablishmentController;
 
 Route::get('/', function () {
     return view('public.queues.index');
@@ -57,6 +58,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::patch('/{ticket}/status', [QueueTickets::class, 'updateStatus'])->name('status');
         Route::put('/{ticket}', [QueueTickets::class, 'update'])->name('update');
     });
+
+    // Routes pour la gestion des établissements
+    Route::resource('establishments', EstablishmentController::class);
 });
 
 require __DIR__.'/auth.php';

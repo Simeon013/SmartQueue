@@ -4,28 +4,28 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateQueuesTable extends Migration
 {
     /**
-     * Run the migrations.
-     */
+    * Run the migrations.
+    */
     public function up(): void
     {
         Schema::create('queues', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('status')->default('active'); // active, paused, closed
-            $table->json('settings')->nullable(); // Configuration spécifique (délai d'absence, notifications, etc.)
-            $table->string('code')->unique()->nullable();
+            $table->string('code')->unique();
+            $table->foreignId('establishment_id')->constrained()->onDelete('cascade');
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
 
     /**
-     * Reverse the migrations.
-     */
+    * Reverse the migrations.
+    */
     public function down(): void
     {
         Schema::dropIfExists('queues');
     }
-};
+}
