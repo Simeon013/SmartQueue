@@ -1,24 +1,24 @@
 @extends('layouts.public')
 
 @section('content')
-<div class="w-full sm:max-w-md px-6 py-4 mt-6 overflow-hidden sm:rounded-lg text-center">
-    <h1 class="text-4xl font-bold text-blue-600 mb-2">SmartQueue</h1>
+<div class="w-full px-6 py-4 mt-6 overflow-hidden text-center sm:max-w-md sm:rounded-lg">
+    <h1 class="mb-2 text-4xl font-bold text-blue-600">SmartQueue</h1>
     <p class="text-gray-600">File d'attente : <span class="font-semibold">{{ $queue->name }}</span></p>
-    <p class="text-gray-500 text-sm">{{ $queue->description }}</p>
+    <p class="text-sm text-gray-500">{{ $queue->description }}</p>
 </div>
 
-<div class="w-full sm:max-w-md mt-6 p-6 bg-white shadow-md overflow-hidden sm:rounded-lg">
+<div class="w-full p-6 mt-6 overflow-hidden bg-white shadow-md sm:max-w-md sm:rounded-lg">
     {{-- Le titre "Rejoindre cette file" et le formulaire seront gérés par le composant PublicTicketStatus --}}
-    {{-- <h2 class="text-2xl font-semibold text-gray-800 mb-4 text-center">Rejoindre cette file</h2> --}}
+    {{-- <h2 class="mb-4 text-2xl font-semibold text-center text-gray-800">Rejoindre cette file</h2> --}}
 
     @if(session('error'))
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 text-sm" role="alert">
+        <div class="relative px-4 py-3 mb-4 text-sm text-red-700 bg-red-100 border border-red-400 rounded" role="alert">
             <span class="block sm:inline">{{ session('error') }}</span>
         </div>
     @endif
 
     @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 text-sm" role="alert">
+        <div class="relative px-4 py-3 mb-4 text-sm text-green-700 bg-green-100 border border-green-400 rounded" role="alert">
             <span class="block sm:inline">{{ session('success') }}</span>
         </div>
     @endif
@@ -32,8 +32,8 @@
 
     <!-- Section pour afficher les tickets en attente et appelés -->
     {{-- Cette section reste dans la vue parent car elle affiche l'état global de la file --}}
-    <div class="border-t pt-6 border-gray-200" wire:poll.2s>
-        <h3 class="text-xl font-semibold text-gray-800 mb-4 text-center">Tickets en cours</h3>
+    <div class="pt-6 border-t border-gray-200" wire:poll.2s>
+        <h3 class="mb-4 text-xl font-semibold text-center text-gray-800">Tickets en cours</h3>
 
         @php
             // Récupérer les tickets actifs (en attente ou appelés) pour cette file, triés par date de création.
@@ -43,9 +43,9 @@
         @if($activeTickets->count() > 0)
             <ul class="divide-y divide-gray-200">
                 @foreach($activeTickets as $ticket)
-                    <li class="py-3 flex justify-between items-center">
+                    <li class="flex items-center justify-between py-3">
                         <div>
-                            <span class="text-lg font-mono text-blue-700">{{ $ticket->code_ticket }}</span>
+                            <span class="font-mono text-lg text-blue-700">{{ $ticket->code_ticket }}</span>
                             <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                 {{ $ticket->status === 'waiting' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800' }}">
                                 {{ ucfirst($ticket->status) }}
@@ -67,7 +67,7 @@
                 @endforeach
             </ul>
         @else
-            <div class="text-center py-4 text-gray-500">
+            <div class="py-4 text-center text-gray-500">
                 Aucun ticket en attente pour le moment.
             </div>
         @endif

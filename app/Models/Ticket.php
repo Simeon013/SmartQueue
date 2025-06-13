@@ -62,7 +62,9 @@ class Ticket extends Model
         }
 
         // Estimer le temps d'attente en fonction de la position
-        return round(($averageWaitTime * $this->position) / 60, 1); // en minutes
+        $estimatedTime = round(($averageWaitTime * $this->position) / 60, 1); // en minutes
+
+        return $estimatedTime < 1 ? '-1min' : $estimatedTime . 'min';
     }
 
     public function scopeWaiting($query)

@@ -8,21 +8,28 @@ use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class QueueController extends Controller
 {
     public function show(Queue $queue)
     {
-        return view('public.queue.show', compact('queue'));
+        $sessionId = session()->getId();
+        $ticket = $queue->tickets()
+            ->where('session_id', $sessionId)
+            ->whereIn('status', ['waiting', 'called'])
+            ->first();
+
+        if ($ticket) {
+            return redirect()->route('public.ticket.status', ['queue_code' => $queue->code, 'ticket_code' => $ticket->code_ticket]);
+        }
+
+        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
+        return view('public.queues.show', compact('queue', 'waitingTicketsCount'));
     }
 
     public function join(Request $request, Queue $queue)
     {
-        // Adapter la validation : plus de name, email, phone
-        $validatedData = $request->validate([
-            'notes' => 'nullable|string|max:500',
-        ]);
-
         $sessionId = $request->session()->getId();
         $existingTicket = $queue->tickets()
             ->where('session_id', $sessionId)
@@ -30,7 +37,7 @@ class QueueController extends Controller
             ->first();
 
         if ($existingTicket) {
-            return redirect()->route('public.queue.show.code', ['code' => $queue->code])
+            return redirect()->route('public.ticket.status', ['queue_code' => $queue->code, 'ticket_code' => $existingTicket->code_ticket])
                 ->with('error', 'Vous avez déjà un ticket en cours pour cette file.');
         }
 
@@ -55,34 +62,48 @@ class QueueController extends Controller
             'code_ticket' => $codeTicket,
             'status' => 'waiting',
             'session_id' => $sessionId,
-            'notes' => $validatedData['notes'] ?? null,
         ]);
 
-        return redirect()->route('public.queue.show.code', ['code' => $queue->code])
+        return redirect()->route('public.ticket.status', ['queue_code' => $queue->code, 'ticket_code' => $ticket->code_ticket])
             ->with('success', 'Votre ticket ' . $ticket->code_ticket . ' a été créé avec succès !');
     }
 
-    public function status(Queue $queue)
+    public function ticketStatus($queue_code, $ticket_code)
     {
-        $ticket = $queue->tickets()
-            ->where('session_id', request()->session()->getId())
-            ->whereIn('status', ['waiting', 'called'])
-            ->first();
+        $queue = Queue::where('code', $queue_code)->firstOrFail();
+        $ticket = Ticket::where('code_ticket', $ticket_code)->where('queue_id', $queue->id)->firstOrFail();
 
-        return response()->json([
-            'ticket' => $ticket,
-            'queue_status' => $queue->status,
-            'position' => $ticket ? $queue->tickets()
-                ->where('status', 'waiting')
-                ->where('id', '<', $ticket->id)
-                ->count() + 1 : null,
-        ]);
+        if ($ticket->session_id !== session()->getId()) {
+            abort(403, 'Accès non autorisé au ticket.');
+        }
+
+        $currentServingTicket = $queue->tickets()->where('status', 'called')->orderBy('updated_at', 'desc')->first();
+        $currentServingNumber = $currentServingTicket ? $currentServingTicket->number : 'N/A';
+
+        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
+
+        $position = $ticket->getPositionAttribute();
+        $estimatedWaitTime = $ticket->getEstimatedWaitTimeAttribute();
+
+        return view('public.tickets.status', compact('queue', 'ticket', 'position', 'estimatedWaitTime', 'currentServingNumber', 'waitingTicketsCount'));
     }
 
     public function showByCode($code)
     {
         $queue = \App\Models\Queue::where('code', $code)->firstOrFail();
-        return view('public.queue.show', compact('queue'));
+
+        $sessionId = session()->getId();
+        $ticket = $queue->tickets()
+            ->where('session_id', $sessionId)
+            ->whereIn('status', ['waiting', 'called'])
+            ->first();
+
+        if ($ticket) {
+            return redirect()->route('public.ticket.status', ['queue_code' => $queue->code, 'ticket_code' => $ticket->code_ticket]);
+        }
+
+        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
+        return view('public.queues.show', compact('queue', 'waitingTicketsCount'));
     }
 
     public function find(Request $request)

@@ -19,7 +19,8 @@ Route::post('/find-queue', [App\Http\Controllers\Public\QueueController::class, 
 Route::get('/q/{code}', [App\Http\Controllers\Public\QueueController::class, 'showByCode'])->name('public.queue.show.code');
 Route::get('/q/{queue}', [App\Http\Controllers\Public\QueueController::class, 'show'])->name('public.queue.show');
 
-Route::get('/q/{queue}/status', [App\Http\Controllers\Public\QueueController::class, 'status'])->name('public.queue.status');
+Route::get('/q/{queue_code}/ticket/{ticket_code}', [App\Http\Controllers\Public\QueueController::class, 'ticketStatus'])->name('public.ticket.status');
+
 Route::post('/q/{queue}/join', [App\Http\Controllers\Public\QueueController::class, 'join'])->name('public.queue.join');
 
 Route::get('/dashboard', function () {
