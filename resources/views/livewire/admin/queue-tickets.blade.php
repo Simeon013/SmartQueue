@@ -9,7 +9,7 @@
             <div class="grid flex-1 grid-cols-1 gap-4 md:grid-cols-2">
                 <div class="flex flex-col items-center p-6 bg-white rounded-lg shadow">
                     <div class="mb-2 text-3xl text-blue-600"><i class="fas fa-ticket-alt"></i></div>
-                    <div class="text-sm text-gray-500">TOTAL TICKETS</div>
+                    <div class="text-sm text-gray-500">TICKETS EN ATTENTE</div>
                     <div class="text-2xl font-bold">{{ $stats['active_tickets'] }}</div>
                 </div>
                 <div class="flex flex-col items-center p-6 bg-white rounded-lg shadow">
@@ -29,7 +29,7 @@
                 </div> --}}
                 <div class="flex flex-col items-center p-6 bg-white rounded-lg shadow">
                     <div class="mb-2 text-3xl text-green-600"><i class="fas fa-hourglass-half"></i></div>
-                    <div class="text-sm text-gray-500">Temps d'attente moyen</div>
+                    <div class="text-sm text-gray-500">TEMPS MOYEN D'ATTENTE</div>
                     <div class="text-2xl font-bold">{{ $stats['average_wait_time'] ? round($stats['average_wait_time']/60, 1) . ' min' : 'N/A' }}</div>
                 </div>
                 <a href="{{ route('admin.queues.tickets.history', $queue) }}" class="flex flex-col items-center p-6 transition bg-white rounded-lg shadow hover:bg-gray-50">
@@ -185,7 +185,7 @@
                         <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Statut</th>
                         {{-- <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Contact</th> --}}
                         <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Créé le</th>
-                        <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Actions</th>
+                        {{-- <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Actions</th> --}}
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
@@ -223,16 +223,16 @@
                                 @endif
                             </span>
                         </td>
-                        <td class="px-4 py-2 text-xs">
-                            {{-- @if($ticket->email)
+                        {{-- <td class="px-4 py-2 text-xs">
+                            @if($ticket->email)
                                 <div class="flex items-center gap-1"><i class="text-blue-500 fas fa-envelope"></i> {{ $ticket->email }}</div>
-                            @endif --}}
-                            {{-- @if($ticket->phone)
+                            @endif
+                            @if($ticket->phone)
                                 <div class="flex items-center gap-1"><i class="text-green-500 fas fa-phone"></i> {{ $ticket->phone }}</div>
-                            @endif --}}
-                        </td>
+                            @endif
+                        </td> --}}
                         <td class="px-4 py-2 text-xs text-gray-500">{{ $ticket->created_at->format('d/m/Y H:i') }}</td>
-                        <td class="px-4 py-2">
+                        {{-- <td class="px-4 py-2">
                             <div class="flex gap-2">
                                 @if($ticket->status === 'waiting')
                                     <button wire:click="updateTicketStatus({{ $ticket->id }}, 'called')" class="inline-flex items-center px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded hover:bg-yellow-200">
@@ -251,7 +251,7 @@
                                     <i class="mr-1 fas fa-trash"></i>Supprimer
                                 </button>
                             </div>
-                        </td>
+                        </td> --}}
                     </tr>
                     @empty
                     <tr>
