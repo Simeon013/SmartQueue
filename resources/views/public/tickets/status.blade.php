@@ -118,7 +118,6 @@
             <div class="establishment-info-card">
                 <div class="flex items-center mb-4">
                     {{-- location svg --}}
-                    
                     <h2 class="text-xl font-bold text-gray-800">Informations établissement</h2>
                 </div>
                 <p class="mb-2"><span class="font-semibold">Établissement :</span> {{ $queue->establishment->name }}</p>
@@ -131,7 +130,7 @@
         <div class="flex justify-center px-4">
             <form action="{{-- {{ route('public.queue.leave', $queue) }} --}}" method="POST" class="w-full max-w-sm">
                 @csrf
-                <button type="submit" class="w-full px-4 py-2 text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
+                <button type="submit" class="w-full px-4 py-2 text-black bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
                     Sortie momentanée
                 </button>
             </form>
@@ -156,4 +155,4 @@
         </footer>
     </div>
 </body>
-</html> 
+</html>
