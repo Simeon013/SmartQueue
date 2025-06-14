@@ -89,10 +89,16 @@
             </div>
             <div class="py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between text-lg">
+                    <span class="text-gray-600">Type</span>
+                    <span class="font-semibold text-gray-800">Banque</span>
+                </div>
+            </div>
+            {{-- <div class="py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between text-lg">
                     <span class="text-gray-600">File</span>
                     <span class="font-semibold text-gray-800">{{ $queue->name }}</span>
                 </div>
-            </div>
+            </div> --}}
             <div class="py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between text-lg">
                     <span class="text-gray-600">Statut</span>
