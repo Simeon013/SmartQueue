@@ -34,7 +34,7 @@
                 </div> --}}
                 <a href="{{ route('admin.queues.tickets.history', $queue) }}" class="flex flex-col items-center p-6 transition bg-white rounded-lg shadow hover:bg-gray-50">
                     <div class="mb-2 text-3xl text-purple-600"><i class="fas fa-history"></i></div>
-                    <div class="text-sm text-gray-500">Tickets Traités</div>
+                    <div class="text-sm text-gray-500">TICKETS TRAITÉS</div>
                     <div class="text-2xl font-bold">{{ $stats['processed_tickets']['total'] }}</div>
                     <div class="mt-1 text-xs text-gray-500">
                         <span class="text-green-600">{{ $stats['processed_tickets']['served'] }} validés</span>
@@ -90,6 +90,23 @@
                 </div>
             </form>
         </div> --}}
+
+        {{-- Paramètres de File --}}
+        <div class="p-6 mb-6 bg-white rounded-lg shadow-sm">
+            <h2 class="mb-4 text-lg font-semibold text-gray-900">Paramètres de File</h2>
+            {{-- Trois boutons horizontals : OUVRIR LA FILE, FERMER LA FILE, ET METTRE EN PAUSE --}}
+            <div class="flex flex-row justify-center space-x-4">
+                <button wire:click="openQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <i class="mr-2 fas fa-play"></i> OUVRIR LA FILE
+                </button>
+                <button wire:click="closeQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    <i class="mr-2 fas fa-stop"></i> FERMER LA FILE
+                </button>
+                <button wire:click="pauseQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 border border-transparent rounded-md shadow-sm hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                    <i class="mr-2 fas fa-pause"></i> METTRE EN PAUSE
+                </button>
+            </div>
+        </div>
 
         <!-- Ticket en cours -->
         <div class="p-6 mb-6 bg-white rounded-lg shadow-sm" wire:poll.5s>
