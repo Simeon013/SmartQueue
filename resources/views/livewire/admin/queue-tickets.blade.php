@@ -102,7 +102,7 @@
                 <button wire:click="closeQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     <i class="mr-2 fas fa-stop"></i> FERMER LA FILE
                 </button>
-                <button wire:click="pauseQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 border border-transparent rounded-md shadow-sm hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                <button wire:click="pauseQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-600 border border-transparent rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                     <i class="mr-2 fas fa-pause"></i> METTRE EN PAUSE
                 </button>
             </div>
