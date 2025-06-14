@@ -27,11 +27,11 @@
                     <div class="text-sm text-gray-500">Ajouter un nouveau ticket</div>
                     <div class="text-2xl font-bold">NOUVEAU TICKET</div>
                 </div> --}}
-                {{-- <div class="flex flex-col items-center p-6 bg-white rounded-lg shadow">
+                <div class="flex flex-col items-center p-6 bg-white rounded-lg shadow">
                     <div class="mb-2 text-3xl text-green-600"><i class="fas fa-hourglass-half"></i></div>
                     <div class="text-sm text-gray-500">Temps d'attente moyen</div>
                     <div class="text-2xl font-bold">{{ $stats['average_wait_time'] ? round($stats['average_wait_time']/60, 1) . ' min' : 'N/A' }}</div>
-                </div> --}}
+                </div>
                 <a href="{{ route('admin.queues.tickets.history', $queue) }}" class="flex flex-col items-center p-6 transition bg-white rounded-lg shadow hover:bg-gray-50">
                     <div class="mb-2 text-3xl text-purple-600"><i class="fas fa-history"></i></div>
                     <div class="text-sm text-gray-500">TICKETS TRAITÉS</div>
@@ -102,7 +102,7 @@
                 <button wire:click="closeQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     <i class="mr-2 fas fa-stop"></i> FERMER LA FILE
                 </button>
-                <button wire:click="pauseQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-gray-700 border border-transparent rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                <button wire:click="pauseQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-700 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     <i class="mr-2 fas fa-pause"></i> METTRE EN PAUSE
                 </button>
             </div>
