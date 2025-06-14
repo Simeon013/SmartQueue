@@ -9,19 +9,29 @@
             <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
                     <div class="text-blue-600 text-3xl mb-2"><i class="fas fa-ticket-alt"></i></div>
-                    <div class="text-gray-500 text-sm">Total Tickets</div>
-                    <div class="text-2xl font-bold">{{ $stats['total_tickets'] }}</div>
-                </div>
-                <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
-                    <div class="text-yellow-500 text-3xl mb-2"><i class="fas fa-clock"></i></div>
-                    <div class="text-gray-500 text-sm">Tickets Actifs</div>
+                    <div class="text-gray-500 text-sm">TOTAL TICKETS</div>
                     <div class="text-2xl font-bold">{{ $stats['active_tickets'] }}</div>
                 </div>
                 <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                    <div class="text-yellow-500 text-3xl mb-2"><i class="fas fa-clock"></i></div>
+                    <div class="text-gray-500 text-sm">TICKET  EN COURS DE TRAITEMENT</div>
+                    <div class="text-2xl font-bold">{{ $this->currentTicket ? $this->currentTicket->code_ticket : 'N/A' }}</div>
+                </div>
+                {{-- <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                    <div class="text-yellow-500 text-3xl mb-2"><i class="fas fa-clock"></i></div>
+                    <div class="text-gray-500 text-sm">Tickets Actifs</div>
+                    <div class="text-2xl font-bold">{{ $stats['active_tickets'] }}</div>
+                </div> --}}
+                {{-- <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
+                    <div class="text-green-600 text-3xl mb-2"><i class="fas fa-hourglass-half"></i></div>
+                    <div class="text-gray-500 text-sm">Ajouter un nouveau ticket</div>
+                    <div class="text-2xl font-bold">NOUVEAU TICKET</div>
+                </div> --}}
+                {{-- <div class="bg-white rounded-lg shadow p-6 flex flex-col items-center">
                     <div class="text-green-600 text-3xl mb-2"><i class="fas fa-hourglass-half"></i></div>
                     <div class="text-gray-500 text-sm">Temps d'attente moyen</div>
                     <div class="text-2xl font-bold">{{ $stats['average_wait_time'] ? round($stats['average_wait_time']/60, 1) . ' min' : 'N/A' }}</div>
-                </div>
+                </div> --}}
                 <a href="{{ route('admin.queues.tickets.history', $queue) }}" class="bg-white rounded-lg shadow p-6 flex flex-col items-center hover:bg-gray-50 transition">
                     <div class="text-purple-600 text-3xl mb-2"><i class="fas fa-history"></i></div>
                     <div class="text-gray-500 text-sm">Tickets Traités</div>
@@ -44,7 +54,7 @@
         </div>
 
         <!-- Formulaire de création de ticket -->
-        <div class="bg-white rounded-lg shadow p-6 mb-8">
+        {{-- <div class="bg-white rounded-lg shadow p-6 mb-8">
             <h3 class="text-lg font-medium text-gray-900 mb-4">Nouveau Ticket</h3>
             <form wire:submit.prevent="createTicket">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -79,7 +89,7 @@
                     </button>
                 </div>
             </form>
-        </div>
+        </div> --}}
 
         <!-- Ticket en cours -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-6" wire:poll.5s>
@@ -92,15 +102,15 @@
                             <div class="flex items-center space-x-3">
                                 <span class="text-2xl font-bold text-indigo-600">{{ $this->currentTicket->code_ticket }}</span>
                                 <span class="px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    @if($this->currentTicket->status === 'waiting') bg-yellow-100 text-yellow-800
-                                    @elseif($this->currentTicket->status === 'called') bg-blue-100 text-blue-800
-                                    @elseif($this->currentTicket->status === 'served') bg-green-100 text-green-800
+                                    @if($this->currentTicket->status === 'en attente') bg-yellow-100 text-yellow-800
+                                    @elseif($this->currentTicket->status === 'en cours') bg-blue-100 text-blue-800
+                                    @elseif($this->currentTicket->status === 'servis') bg-green-100 text-green-800
                                     @else bg-gray-100 text-gray-800
                                     @endif">
                                     {{ ucfirst($this->currentTicket->status) }}
                                 </span>
                             </div>
-                            <div class="mt-2 text-sm text-gray-600">
+                            {{-- <div class="mt-2 text-sm text-gray-600">
                                 <p><span class="font-medium">Nom:</span> {{ $this->currentTicket->name }}</p>
                                 @if($this->currentTicket->email)
                                     <p><span class="font-medium">Email:</span> {{ $this->currentTicket->email }}</p>
@@ -111,7 +121,7 @@
                                 @if($this->currentTicket->notes)
                                     <p><span class="font-medium">Notes:</span> {{ $this->currentTicket->notes }}</p>
                                 @endif
-                            </div>
+                            </div> --}}
                         </div>
                         <div class="flex flex-col space-y-2">
                             <!-- Debug info -->
@@ -121,16 +131,16 @@
 
                             @if($this->currentTicket->status === 'waiting')
                                 <button wire:click="quickAction('call')" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                    <i class="fas fa-bell mr-2"></i>Appeler
+                                    <i class="fas fa-bell mr-2"></i>SUIVANT
                                 </button>
                             @endif
                             @if($this->currentTicket->status === 'called')
                                 <div class="flex flex-col space-y-2">
                                     <button wire:click="quickAction('validate')" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                        <i class="fas fa-check mr-2"></i>Valider
+                                        <i class="fas fa-check mr-2"></i>CONFIRMER PRÉSENCE
                                     </button>
                                     <button wire:click="quickAction('absent')" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                        <i class="fas fa-user-times mr-2"></i>Absent
+                                        <i class="fas fa-user-times mr-2"></i>ABSENT
                                     </button>
                                     <button wire:click="quickAction('recall')" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                         <i class="fas fa-undo mr-2"></i>Remettre en attente

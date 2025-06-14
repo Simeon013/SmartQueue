@@ -75,11 +75,11 @@
         <!-- Navbar -->
         <nav class="flex items-center justify-between p-4 bg-white shadow">
             <div class="text-xl font-bold text-gray-800">VirtualQ</div>
-            <button class="text-gray-500 focus:outline-none">
+            {{-- <button class="text-gray-500 focus:outline-none">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
                 </svg>
-            </button>
+            </button> --}}
         </nav>
 
         <!-- Main Content -->
@@ -94,7 +94,7 @@
             <div class="grid grid-cols-2 gap-4">
                 <div class="position-card">
                     <div class="position-card-title">Votre Numéro</div>
-                    <div class="position-card-value">{{ $ticket->number }}</div>
+                    <div class="position-card-value">{{ $ticket->code_ticket }}</div>
                 </div>
                 <div class="position-card">
                     <div class="position-card-title">Position Actuelle</div>
@@ -117,25 +117,40 @@
             <!-- Establishment Info Card -->
             <div class="establishment-info-card">
                 <div class="flex items-center mb-4">
-                    <svg class="w-6 h-6 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0L6.343 16.657m11.314-11.314L12 3.5l-5.657 5.657m11.314 0a9 9 0 11-16 0 9 9 0 0116 0z"></path>
-                    </svg>
+                    {{-- location svg --}}
+                    
                     <h2 class="text-xl font-bold text-gray-800">Informations établissement</h2>
                 </div>
                 <p class="mb-2"><span class="font-semibold">Établissement :</span> {{ $queue->establishment->name }}</p>
-                <p class="mb-2"><span class="font-semibold">Type :</span> {{ $queue->name }}</p>
-                <p class="mb-2"><span class="font-semibold">Numéro en cours :</span> {{ $currentServingNumber }}</p>
+                {{-- <p class="mb-2"><span class="font-semibold">Type :</span> {{ $queue->name }}</p> --}}
+                <p class="mb-2"><span class="font-semibold">Numéro en cours :</span> {{ $currentServingTicketCode }}</p>
                 <p><span class="font-semibold">Utilisateurs en attente :</span> {{ $waitingTicketsCount }}</p>
             </div>
         </main>
+        {{-- Bouton sortie momentané --}}
+        <div class="flex justify-center px-4">
+            <form action="{{-- {{ route('public.queue.leave', $queue) }} --}}" method="POST" class="w-full max-w-sm">
+                @csrf
+                <button type="submit" class="w-full px-4 py-2 text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
+                    Sortie momentanée
+                </button>
+            </form>
+        </div>
+        {{-- Bouton annuler --}}
+        <div class="flex justify-center p-4">
+            <form action="{{-- {{ route('public.queue.cancel', $queue) }} --}}" method="POST" class="w-full max-w-sm">
+                @csrf
+                <button type="submit" class="w-full px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                    Quitter
+                </button>
+            </form>
+        </div>
+        <!-- Back to Home Button -->
 
         <!-- Footer / Last Updated -->
         <footer class="flex items-center justify-center p-4 text-sm text-center text-gray-500">
             <svg class="w-4 h-4 mr-1 text-green-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l3 3a1 1 0 001.414-1.414L11 9.586V6z" clip-rule="evenodd"></path>
-            </svg>
-            <svg class="w-4 h-4 mr-1 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 0020 14c0 1.577-.417 3.075-1.146 4.382M4 12v-.75m0 0a8.001 8.001 0 0115.356-2A8.001 8.001 0 004 12zm0 0H3m-1 0h1m-1 0v-.75m0 0a8.001 8.001 0 0115.356-2A8.001 8.001 0 004 12z"></path>
             </svg>
             Dernière mise à jour : {{ date('H:i:s') }}
         </footer>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'SmartQueue') }} - Administration</title>
+    <title>{{ config('app.name', 'VirtualQ') }} - Administration</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -22,7 +22,7 @@
         <aside class="flex flex-col justify-between w-64 bg-[#fcf3e6] border-r border-[#f2e6d8] py-6 px-4">
             <div>
                 <div class="flex items-center px-2 mb-8">
-                    <span class="text-2xl font-extrabold text-blue-700">SmartQueue</span>
+                    <span class="text-2xl font-extrabold text-blue-700">VirtualQ</span>
                 </div>
                 <nav class="flex flex-col gap-1">
                     <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.dashboard') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">

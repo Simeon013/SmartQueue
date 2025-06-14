@@ -78,6 +78,7 @@ class QueueController extends Controller
         }
 
         $currentServingTicket = $queue->tickets()->where('status', 'called')->orderBy('updated_at', 'desc')->first();
+        $currentServingTicketCode = $currentServingTicket ? $currentServingTicket->code_ticket : 'Aucun ticket en cours de traitement';
         $currentServingNumber = $currentServingTicket ? $currentServingTicket->number : 'N/A';
 
         $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
@@ -85,7 +86,7 @@ class QueueController extends Controller
         $position = $ticket->getPositionAttribute();
         $estimatedWaitTime = $ticket->getEstimatedWaitTimeAttribute();
 
-        return view('public.tickets.status', compact('queue', 'ticket', 'position', 'estimatedWaitTime', 'currentServingNumber', 'waitingTicketsCount'));
+        return view('public.tickets.status', compact('queue', 'ticket', 'position', 'estimatedWaitTime', 'currentServingNumber', 'currentServingTicketCode', 'waitingTicketsCount'));
     }
 
     public function showByCode($code)
