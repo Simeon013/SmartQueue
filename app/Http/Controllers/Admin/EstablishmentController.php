@@ -71,3 +71,4 @@ class EstablishmentController extends Controller
             ->with('success', 'Établissement supprimé avec succès.');
     }
 }
+ 
