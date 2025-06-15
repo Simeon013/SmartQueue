@@ -23,7 +23,8 @@ Route::get('/q/{queue_code}/ticket/{ticket_code}', [App\Http\Controllers\Public\
 
 Route::post('/q/{queue}/join', [App\Http\Controllers\Public\QueueController::class, 'join'])->name('public.queue.join');
 
-Route::get('/dashboard', function () {
+
+Route::get('/admin/dashboard', function () {
     return view('admin.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 

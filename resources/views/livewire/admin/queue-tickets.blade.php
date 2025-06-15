@@ -185,7 +185,7 @@
                         <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Statut</th>
                         {{-- <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Contact</th> --}}
                         <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Créé le</th>
-                        {{-- <th class="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Actions</th> --}}
+                        {{-- <th class="px-4 text-xs font-medium tracking-wider text-left text-gray-500 uppercase p y-3">Actions</th> --}}
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
