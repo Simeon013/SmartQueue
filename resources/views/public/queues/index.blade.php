@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="w-full sm:max-w-md px-6 py-4 mt-6 overflow-hidden sm:rounded-lg text-center">
-        <h1 class="text-4xl font-bold text-blue-600 mb-2">SmartQueue</h1>
+        <h1 class="text-4xl font-bold text-blue-600 mb-2">VirtualQ</h1>
         <p class="text-gray-600">Bienvenue ! Choisissez une file d'attente.</p>
     </div>
 

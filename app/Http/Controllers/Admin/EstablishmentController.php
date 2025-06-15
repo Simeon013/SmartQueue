@@ -24,6 +24,7 @@ class EstablishmentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'type' => 'required|string|max:255',
         ]);
 
         Establishment::create($validated);
@@ -47,6 +48,7 @@ class EstablishmentController extends Controller
             'postal_code' => 'required|string|max:20',
             'country' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'type' => 'required|string|max:255',
         ]);
 
         $establishment->update($validated);
@@ -71,4 +73,3 @@ class EstablishmentController extends Controller
             ->with('success', 'Établissement supprimé avec succès.');
     }
 }
- 

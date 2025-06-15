@@ -89,6 +89,65 @@ class QueueController extends Controller
         return view('public.tickets.status', compact('queue', 'ticket', 'position', 'estimatedWaitTime', 'currentServingNumber', 'currentServingTicketCode', 'waitingTicketsCount'));
     }
 
+    public function cancelTicket(Ticket $ticket)
+    {
+        // Ensure the ticket belongs to the current session for security
+        if ($ticket->session_id !== session()->getId()) {
+            abort(403, 'Accès non autorisé pour annuler ce ticket.');
+        }
+
+        $ticket->delete();
+
+        return redirect()->route('public.queues.index')
+            ->with('success', 'Votre ticket a été annulé avec succès.');
+    }
+
+    public function pauseTicket(Ticket $ticket)
+    {
+        // Ensure the ticket belongs to the current session for security
+        if ($ticket->session_id !== session()->getId()) {
+            abort(403, 'Accès non autorisé pour mettre en pause ce ticket.');
+        }
+
+        // Update the ticket status to 'paused'
+        $ticket->update(['status' => 'paused']);
+
+        // Re-fetch data and return the current view
+        $queue = $ticket->queue;
+        $currentServingTicket = $queue->tickets()->where('status', 'called')->orderBy('updated_at', 'desc')->first();
+        $currentServingTicketCode = $currentServingTicket ? $currentServingTicket->code_ticket : 'Aucun ticket en cours de traitement';
+        $currentServingNumber = $currentServingTicket ? $currentServingTicket->number : 'N/A';
+        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
+        $position = $ticket->getPositionAttribute();
+        $estimatedWaitTime = $ticket->getEstimatedWaitTimeAttribute();
+
+        return view('public.tickets.status', compact('queue', 'ticket', 'position', 'estimatedWaitTime', 'currentServingNumber', 'currentServingTicketCode', 'waitingTicketsCount'))
+            ->with('success', 'Votre ticket a été mis en pause momentanément.');
+    }
+
+    public function resumeTicket(Ticket $ticket)
+    {
+        // Ensure the ticket belongs to the current session for security
+        if ($ticket->session_id !== session()->getId()) {
+            abort(403, 'Accès non autorisé pour reprendre ce ticket.');
+        }
+
+        // Update the ticket status to 'waiting'
+        $ticket->update(['status' => 'waiting']);
+
+        // Re-fetch data and return the current view
+        $queue = $ticket->queue;
+        $currentServingTicket = $queue->tickets()->where('status', 'called')->orderBy('updated_at', 'desc')->first();
+        $currentServingTicketCode = $currentServingTicket ? $currentServingTicket->code_ticket : 'Aucun ticket en cours de traitement';
+        $currentServingNumber = $currentServingTicket ? $currentServingTicket->number : 'N/A';
+        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
+        $position = $ticket->getPositionAttribute();
+        $estimatedWaitTime = $ticket->getEstimatedWaitTimeAttribute();
+
+        return view('public.tickets.status', compact('queue', 'ticket', 'position', 'estimatedWaitTime', 'currentServingNumber', 'currentServingTicketCode', 'waitingTicketsCount'))
+            ->with('success', 'Votre ticket est de nouveau actif dans la file.');
+    }
+
     public function showByCode($code)
     {
         $queue = \App\Models\Queue::where('code', $code)->firstOrFail();

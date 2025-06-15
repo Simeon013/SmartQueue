@@ -111,7 +111,7 @@
             <div class="py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between text-lg">
                     <span class="text-gray-600">Type</span>
-                    <span class="font-semibold text-gray-800">Banque</span>
+                    <span class="font-semibold text-gray-800">{{ $queue->establishment->type }}</span>
                 </div>
             </div>
             {{-- <div class="py-4 border-b border-gray-200">
@@ -142,7 +142,7 @@
                 Rejoindre la file
             </button>
         </form>
-        <form action="{{-- route for canceling --}}" method="POST">
+        <form action="{{ route('public.queues.index') }}" method="GET">
             @csrf
             <button type="submit" class="w-full cancel-button">
                 <svg class="inline w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

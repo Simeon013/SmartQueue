@@ -35,12 +35,12 @@ class Ticket extends Model
 
     public function getPositionAttribute()
     {
-        if ($this->status !== 'waiting') {
+        if (!in_array($this->status, ['waiting', 'paused'])) {
             return null;
         }
 
         return $this->queue->tickets()
-            ->waiting()
+            ->whereIn('status', ['waiting', 'paused'])
             ->where('created_at', '<', $this->created_at)
             ->count() + 1;
     }

@@ -15,7 +15,8 @@ class Establishment extends Model
         'phone',
         'email',
         'description',
-        'is_active'
+        'is_active',
+        'type'
     ];
 
     protected $casts = [

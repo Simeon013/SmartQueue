@@ -90,6 +90,17 @@
                 <p class="text-blue-200">Restez informé de votre progression dans la file</p>
             </div>
 
+            @if ($ticket->status === 'paused')
+                <div class="p-4 text-center text-yellow-700 bg-yellow-100 border border-yellow-400 rounded-lg shadow-md">
+                    <p class="font-semibold">Votre ticket est en pause. Votre position est conservée.</p>
+                    <p class="text-sm">Vous pouvez revenir dans la file à tout moment.</p>
+                </div>
+            @elseif ($position <= 3 && $position > 0)
+                <div class="p-4 text-center text-orange-700 bg-orange-100 border border-orange-400 rounded-lg shadow-md">
+                    <p class="font-semibold">Attention ! Votre position est proche. Préparez-vous !</p>
+                </div>
+            @endif
+
             <!-- Position Cards Grid -->
             <div class="grid grid-cols-2 gap-4">
                 <div class="position-card">
@@ -98,7 +109,13 @@
                 </div>
                 <div class="position-card">
                     <div class="position-card-title">Position Actuelle</div>
-                    <div class="position-card-value">{{ $position }}</div>
+                    <div class="position-card-value">
+                        @if ($ticket->status === 'paused')
+                            En pause
+                        @else
+                            {{ $position }}
+                        @endif
+                    </div>
                 </div>
                 <div class="position-card">
                     <div class="position-card-title">Temps Estimé</div>
@@ -126,19 +143,29 @@
                 <p><span class="font-semibold">Utilisateurs en attente :</span> {{ $waitingTicketsCount }}</p>
             </div>
         </main>
-        {{-- Bouton sortie momentané --}}
-        <div class="flex justify-center px-4">
-            <form action="{{-- {{ route('public.queue.leave', $queue) }} --}}" method="POST" class="w-full max-w-sm">
-                @csrf
-                <button type="submit" class="w-full px-4 py-2 text-black bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
-                    Sortie momentanée
-                </button>
-            </form>
+        {{-- Boutons d'action --}}
+        <div class="flex justify-center px-4 mb-4">
+            @if ($ticket->status === 'paused')
+                <form action="{{ route('public.ticket.resume', $ticket) }}" method="POST" class="w-full max-w-sm">
+                    @csrf
+                    <button type="submit" class="w-full px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                        Retour dans la file
+                    </button>
+                </form>
+            @else
+                <form action="{{ route('public.ticket.pause', $ticket) }}" method="POST" class="w-full max-w-sm" onsubmit="return confirm('Êtes-vous sûr de vouloir quitter la file momentanément ? Vous pourrez y revenir plus tard.');">
+                    @csrf
+                    <button type="submit" class="w-full px-4 py-2 text-black bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
+                        Sortie momentanée
+                    </button>
+                </form>
+            @endif
         </div>
         {{-- Bouton annuler --}}
         <div class="flex justify-center p-4">
-            <form action="{{-- {{ route('public.queue.cancel', $queue) }} --}}" method="POST" class="w-full max-w-sm">
+            <form action="{{ route('public.ticket.cancel', $ticket) }}" method="POST" class="w-full max-w-sm" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler votre ticket ? Cette action est irréversible.');">
                 @csrf
+                @method('DELETE')
                 <button type="submit" class="w-full px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
                     Quitter
                 </button>

@@ -27,6 +27,23 @@
                 @enderror
             </div>
 
+            <div>
+                <label for="type" class="block text-sm font-medium text-gray-700">Type d'établissement</label>
+                <select name="type" id="type"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('type') border-red-300 @enderror"
+                        required>
+                    <option value="">Sélectionnez un type</option>
+                    <option value="Restaurant" {{ old('type') == 'Restaurant' ? 'selected' : '' }}>Restaurant</option>
+                    <option value="Banque" {{ old('type') == 'Banque' ? 'selected' : '' }}>Banque</option>
+                    <option value="Hôpital" {{ old('type') == 'Hôpital' ? 'selected' : '' }}>Hôpital</option>
+                    <option value="Administration" {{ old('type') == 'Administration' ? 'selected' : '' }}>Administration</option>
+                    <option value="Autre" {{ old('type') == 'Autre' ? 'selected' : '' }}>Autre</option>
+                </select>
+                @error('type')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
             <div class="flex justify-end space-x-3">
                 <a href="{{ route('admin.establishments.index') }}"
                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">
@@ -41,4 +58,3 @@
     </div>
 </div>
 @endsection
- 

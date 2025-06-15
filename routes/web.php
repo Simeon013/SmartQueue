@@ -20,11 +20,14 @@ Route::get('/q/{code}', [App\Http\Controllers\Public\QueueController::class, 'sh
 Route::get('/q/{queue}', [App\Http\Controllers\Public\QueueController::class, 'show'])->name('public.queue.show');
 
 Route::get('/q/{queue_code}/ticket/{ticket_code}', [App\Http\Controllers\Public\QueueController::class, 'ticketStatus'])->name('public.ticket.status');
+Route::delete('/q/{ticket}/cancel', [App\Http\Controllers\Public\QueueController::class, 'cancelTicket'])->name('public.ticket.cancel');
+Route::post('/q/{ticket}/pause', [App\Http\Controllers\Public\QueueController::class, 'pauseTicket'])->name('public.ticket.pause');
+Route::post('/q/{ticket}/resume', [App\Http\Controllers\Public\QueueController::class, 'resumeTicket'])->name('public.ticket.resume');
 
 Route::post('/q/{queue}/join', [App\Http\Controllers\Public\QueueController::class, 'join'])->name('public.queue.join');
 
 
-Route::get('/admin/dashboard', function () {
+Route::get('/dashboard', function () {
     return view('admin.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 

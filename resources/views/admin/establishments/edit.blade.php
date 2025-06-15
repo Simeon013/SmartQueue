@@ -52,6 +52,23 @@
             </div>
 
             <div>
+                <label for="type" class="block text-sm font-medium text-gray-700">Type d'établissement</label>
+                <select name="type" id="type"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('type') border-red-300 @enderror"
+                        required>
+                    <option value="">Sélectionnez un type</option>
+                    <option value="Restaurant" {{ old('type', $establishment->type) == 'Restaurant' ? 'selected' : '' }}>Restaurant</option>
+                    <option value="Banque" {{ old('type', $establishment->type) == 'Banque' ? 'selected' : '' }}>Banque</option>
+                    <option value="Hôpital" {{ old('type', $establishment->type) == 'Hôpital' ? 'selected' : '' }}>Hôpital</option>
+                    <option value="Administration" {{ old('type', $establishment->type) == 'Administration' ? 'selected' : '' }}>Administration</option>
+                    <option value="Autre" {{ old('type', $establishment->type) == 'Autre' ? 'selected' : '' }}>Autre</option>
+                </select>
+                @error('type')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <div>
                 <label for="country" class="block text-sm font-medium text-gray-700">Pays</label>
                 <input type="text" name="country" id="country"
                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('country') border-red-300 @enderror"
