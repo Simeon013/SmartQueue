@@ -77,16 +77,7 @@ class QueueController extends Controller
             abort(403, 'Accès non autorisé au ticket.');
         }
 
-        $currentServingTicket = $queue->tickets()->where('status', 'called')->orderBy('updated_at', 'desc')->first();
-        $currentServingTicketCode = $currentServingTicket ? $currentServingTicket->code_ticket : 'Aucun ticket en cours de traitement';
-        $currentServingNumber = $currentServingTicket ? $currentServingTicket->number : 'N/A';
-
-        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
-
-        $position = $ticket->getPositionAttribute();
-        $estimatedWaitTime = $ticket->getEstimatedWaitTimeAttribute();
-
-        return view('public.tickets.status', compact('queue', 'ticket', 'position', 'estimatedWaitTime', 'currentServingNumber', 'currentServingTicketCode', 'waitingTicketsCount'));
+        return view('public.tickets.status', compact('queue', 'ticket'));
     }
 
     public function cancelTicket(Ticket $ticket)
