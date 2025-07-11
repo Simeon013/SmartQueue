@@ -65,7 +65,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     });
 
     // Routes pour la gestion des établissements
-    Route::resource('establishments', EstablishmentController::class);
+    Route::get('settings/establishment', [EstablishmentController::class, 'settings'])->name('establishment.settings');
+    Route::put('settings/establishment', [EstablishmentController::class, 'updateSettings'])->name('establishment.settings.update');
 });
 
 require __DIR__.'/auth.php';

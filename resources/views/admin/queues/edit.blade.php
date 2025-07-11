@@ -10,19 +10,8 @@
             @method('PUT')
 
             <div>
-                <label for="establishment_id" class="block text-sm font-medium text-gray-700">Établissement</label>
-                <select id="establishment_id" name="establishment_id" required
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('establishment_id') border-red-300 @enderror">
-                    <option value="">Sélectionnez un établissement</option>
-                    @foreach($establishments as $establishment)
-                        <option value="{{ $establishment->id }}" {{ (old('establishment_id', $queue->establishment_id) == $establishment->id) ? 'selected' : '' }}>
-                            {{ $establishment->name }}
-                        </option>
-                    @endforeach
-                </select>
-                @error('establishment_id')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+                <label class="block text-sm font-medium text-gray-700">Établissement</label>
+                <input type="text" value="{{ $establishment->name }}" class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100" readonly>
             </div>
 
             <div>

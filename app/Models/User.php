@@ -64,12 +64,6 @@ class User extends Authenticatable
         return $this->role === 'agent';
     }
 
-    public function establishments()
-    {
-        return $this->belongsToMany(Establishment::class, 'establishment_user')
-            ->withTimestamps();
-    }
-
     public function managedQueues()
     {
         return Queue::whereHas('establishment', function ($query) {

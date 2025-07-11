@@ -12,18 +12,8 @@
                         @csrf
 
                         <div class="mb-3">
-                            <label for="establishment_id" class="form-label">Établissement</label>
-                            <select class="form-select @error('establishment_id') is-invalid @enderror" id="establishment_id" name="establishment_id" required>
-                                <option value="">Sélectionnez un établissement</option>
-                                @foreach($establishments as $establishment)
-                                    <option value="{{ $establishment->id }}" {{ old('establishment_id') == $establishment->id ? 'selected' : '' }}>
-                                        {{ $establishment->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('establishment_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <label class="form-label">Établissement</label>
+                            <input type="text" value="{{ \App\Models\Establishment::first()->name }}" class="form-control bg-light" readonly>
                         </div>
 
                         <div class="mb-3">

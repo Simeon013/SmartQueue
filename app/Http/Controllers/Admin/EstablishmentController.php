@@ -72,4 +72,26 @@ class EstablishmentController extends Controller
             ->route('admin.establishments.index')
             ->with('success', 'Établissement supprimé avec succès.');
     }
+
+    public function settings()
+    {
+        $establishment = \App\Models\Establishment::first();
+        return view('admin.establishments.settings', compact('establishment'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $establishment = \App\Models\Establishment::first();
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'postal_code' => 'nullable|string|max:20',
+            'country' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'type' => 'nullable|string|max:255',
+        ]);
+        $establishment->update($validated);
+        return redirect()->route('admin.establishment.settings')->with('success', 'Informations de l\'établissement mises à jour.');
+    }
 }

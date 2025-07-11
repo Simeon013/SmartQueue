@@ -20,23 +20,21 @@ class QueueController extends Controller
 
     public function create()
     {
-        $establishments = Establishment::all();
-        return view('admin.queues.create', compact('establishments'));
+        $establishment = \App\Models\Establishment::first();
+        return view('admin.queues.create', compact('establishment'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'establishment_id' => 'required|exists:establishments,id',
+            // 'establishment_id' => 'required|exists:establishments,id',
             'is_active' => 'boolean',
         ]);
-
-        $validated['code'] = Str::random(6);
+        $validated['code'] = \Illuminate\Support\Str::random(6);
         $validated['is_active'] = $request->has('is_active');
-
-        Queue::create($validated);
-
+        $validated['establishment_id'] = \App\Models\Establishment::first()->id;
+        \App\Models\Queue::create($validated);
         return redirect()->route('admin.queues.index')
             ->with('success', 'File d\'attente créée avec succès.');
     }
@@ -65,24 +63,22 @@ class QueueController extends Controller
         return view('admin.queues.show', compact('queue', 'stats', 'tickets'));
     }
 
-    public function edit(Queue $queue)
+    public function edit(\App\Models\Queue $queue)
     {
-        $establishments = Establishment::all();
-        return view('admin.queues.edit', compact('queue', 'establishments'));
+        $establishment = \App\Models\Establishment::first();
+        return view('admin.queues.edit', compact('queue', 'establishment'));
     }
 
-    public function update(Request $request, Queue $queue)
+    public function update(Request $request, \App\Models\Queue $queue)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'establishment_id' => 'required|exists:establishments,id',
+            // 'establishment_id' => 'required|exists:establishments,id',
             'is_active' => 'boolean',
         ]);
-
         $validated['is_active'] = $request->has('is_active');
-
+        $validated['establishment_id'] = \App\Models\Establishment::first()->id;
         $queue->update($validated);
-
         return redirect()->route('admin.queues.index')
             ->with('success', 'File d\'attente mise à jour avec succès.');
     }
