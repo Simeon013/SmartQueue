@@ -22,12 +22,16 @@ class SettingsController extends Controller
         $autoCloseEnabled = $request->has('auto_close_enabled');
 
         try {
-            // Validation simplifiée
+            // Validation des nouveaux champs
             $validated = $request->validate([
-                'auto_close_time' => 'required|date_format:H:i',
+                'auto_close_hour' => 'required|integer|between:0,23',
+                'auto_close_minute' => 'required|integer|between:0,59',
                 'auto_close_days' => 'required|array',
                 'auto_close_days.*' => 'integer|between:0,6'
             ]);
+
+            // Construire l'heure au format H:i
+            $autoCloseTime = sprintf('%02d:%02d', $validated['auto_close_hour'], $validated['auto_close_minute']);
 
             // Convertir les jours en entiers
             if (isset($validated['auto_close_days'])) {
@@ -45,7 +49,7 @@ class SettingsController extends Controller
 
             SystemSetting::setValue(
                 'auto_close_time',
-                $validated['auto_close_time'],
+                $autoCloseTime,
                 'string',
                 'auto_close',
                 'Heure de fermeture automatique'

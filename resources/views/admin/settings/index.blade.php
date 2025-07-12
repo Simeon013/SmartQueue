@@ -109,10 +109,37 @@
 
                         <div class="bg-gray-50 p-4 rounded-lg">
                             <label for="auto_close_time" class="block text-sm font-medium text-gray-700 mb-3">Heure de fermeture</label>
-                            <input type="time" id="auto_close_time" name="auto_close_time"
-                                   class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-lg"
-                                   value="{{ $autoCloseSettings['auto_close_time'] ?? '18:00' }}">
-                            <p class="text-xs text-gray-500 mt-2">Heure à laquelle toutes les files seront fermées</p>
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-1">
+                                    <label for="auto_close_hour" class="block text-xs text-gray-500 mb-1">Heure</label>
+                                    <select id="auto_close_hour" name="auto_close_hour"
+                                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                        @php
+                                            $currentHour = isset($autoCloseSettings['auto_close_time']) ? (int)substr($autoCloseSettings['auto_close_time'], 0, 2) : 18;
+                                        @endphp
+                                        @for($hour = 0; $hour <= 23; $hour++)
+                                            <option value="{{ $hour }}" {{ $hour == $currentHour ? 'selected' : '' }}>
+                                                {{ str_pad($hour, 2, '0', STR_PAD_LEFT) }}h
+                                            </option>
+                                        @endfor
+                                    </select>
+                                </div>
+                                <div class="flex-1">
+                                    <label for="auto_close_minute" class="block text-xs text-gray-500 mb-1">Minute</label>
+                                    <select id="auto_close_minute" name="auto_close_minute"
+                                            class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                        @php
+                                            $currentMinute = isset($autoCloseSettings['auto_close_time']) ? (int)substr($autoCloseSettings['auto_close_time'], 3, 2) : 0;
+                                        @endphp
+                                        @for($minute = 0; $minute <= 59; $minute += 5)
+                                            <option value="{{ $minute }}" {{ $minute == $currentMinute ? 'selected' : '' }}>
+                                                {{ str_pad($minute, 2, '0', STR_PAD_LEFT) }}
+                                            </option>
+                                        @endfor
+                                    </select>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Heure à laquelle toutes les files seront fermées (format 24h)</p>
                         </div>
                     </div>
 
