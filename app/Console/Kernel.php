@@ -7,6 +7,14 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 class Kernel extends ConsoleKernel
 {
+        /**
+     * Enregistrement des commandes personnalisées
+     */
+    protected function commands(): void
+    {
+        $this->load(__DIR__.'/Commands');
+    }
+
     /**
      * The application's global HTTP middleware stack.
      *
@@ -62,7 +70,7 @@ class Kernel extends ConsoleKernel
     /**
      * Define the application's command schedule.
      */
-    protected function schedule(Schedule $schedule): void
+        protected function schedule(Schedule $schedule): void
     {
         // Fermeture automatique des files d'attente
         $schedule->command('queues:auto-close')
