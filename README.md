@@ -59,3 +59,53 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+# SmartQueue - Système de gestion de files d'attente
+
+## Configuration de la fermeture automatique
+
+### Cron Job requis
+
+Pour que la fermeture automatique des files d'attente fonctionne, vous devez configurer un cron job sur votre serveur.
+
+Ajoutez cette ligne à votre crontab :
+
+```bash
+* * * * * cd /path/to/your/project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+### Test de la commande
+
+Vous pouvez tester manuellement la fermeture automatique avec :
+
+```bash
+php artisan queues:auto-close
+```
+
+Pour forcer la fermeture (ignorer les conditions de temps) :
+
+```bash
+php artisan queues:auto-close --force
+```
+
+### Paramètres configurables
+
+- **Activation** : Active/désactive la fonctionnalité
+- **Heure** : Heure de fermeture (format HH:MM)
+- **Jours** : Jours de la semaine où la fermeture est active
+
+## Installation
+
+1. Clonez le repository
+2. Installez les dépendances : `composer install`
+3. Copiez le fichier `.env.example` vers `.env`
+4. Configurez votre base de données dans `.env`
+5. Générez la clé d'application : `php artisan key:generate`
+6. Lancez les migrations : `php artisan migrate`
+7. Configurez le cron job (voir ci-dessus)
+
+## Utilisation
+
+- Accédez à l'interface d'administration
+- Configurez les paramètres de fermeture automatique
+- Les files se fermeront automatiquement selon vos paramètres

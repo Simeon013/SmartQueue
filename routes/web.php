@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\TicketController;
 use App\Livewire\Admin\QueueTickets;
 use App\Livewire\Admin\QueueTicketsHistory;
 use App\Http\Controllers\Admin\EstablishmentController;
+use App\Http\Controllers\Admin\SettingsController;
 
 Route::get('/', function () {
     return view('public.queues.index');
@@ -69,9 +70,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::put('settings/establishment', [EstablishmentController::class, 'updateSettings'])->name('establishment.settings.update');
 
     // Route pour la page paramètres générale
-    Route::get('settings', function () {
-        return view('admin.settings.index');
-    })->name('settings');
+    Route::get('settings', [SettingsController::class, 'index'])->name('settings');
+    Route::post('settings/auto-close', [SettingsController::class, 'updateAutoClose'])->name('settings.auto-close');
 });
 
 require __DIR__.'/auth.php';
