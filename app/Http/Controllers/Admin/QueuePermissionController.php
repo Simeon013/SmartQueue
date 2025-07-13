@@ -49,8 +49,14 @@ class QueuePermissionController extends Controller
         }
 
         if ($validated['mode'] === 'all_agents_manager') {
-            // Supprimer toutes les permissions individuelles
-            $queue->permissions()->delete();
+            // Supprimer seulement les permissions individuelles non-essentielles (pas owner)
+            $queue->permissions()
+                ->whereNotNull('user_id')
+                ->whereNotIn('permission_type', ['owner'])
+                ->delete();
+            
+            // Supprimer les permissions globales existantes
+            $queue->permissions()->whereNull('user_id')->delete();
             
             // Ajouter une permission spéciale pour tous les agents (gestion complète)
             $queue->permissions()->create([
@@ -61,8 +67,14 @@ class QueuePermissionController extends Controller
             
             return redirect()->back()->with('success', 'Tous les agents peuvent maintenant gérer complètement cette file d\'attente.');
         } elseif ($validated['mode'] === 'all_agents_operator') {
-            // Supprimer toutes les permissions individuelles
-            $queue->permissions()->delete();
+            // Supprimer seulement les permissions individuelles non-essentielles (pas owner/manager)
+            $queue->permissions()
+                ->whereNotNull('user_id')
+                ->whereNotIn('permission_type', ['owner', 'manager'])
+                ->delete();
+            
+            // Supprimer les permissions globales existantes
+            $queue->permissions()->whereNull('user_id')->delete();
             
             // Ajouter une permission spéciale pour tous les agents (gestion des tickets seulement)
             $queue->permissions()->create([

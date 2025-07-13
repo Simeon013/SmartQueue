@@ -121,10 +121,7 @@ trait HasPermissions
      */
     public function canManageQueue(Queue $queue): bool
     {
-        return $this->queuePermissions()
-            ->where('queue_id', $queue->id)
-            ->whereIn('permission_type', ['owner', 'manager'])
-            ->exists();
+        return $queue->userCanManage($this);
     }
 
     /**
@@ -132,10 +129,7 @@ trait HasPermissions
      */
     public function ownsQueue(Queue $queue): bool
     {
-        return $this->queuePermissions()
-            ->where('queue_id', $queue->id)
-            ->where('permission_type', 'owner')
-            ->exists();
+        return $queue->userOwns($this);
     }
 
     /**
@@ -143,10 +137,7 @@ trait HasPermissions
      */
     public function isManagerOfQueue(Queue $queue): bool
     {
-        return $this->queuePermissions()
-            ->where('queue_id', $queue->id)
-            ->where('permission_type', 'manager')
-            ->exists();
+        return $queue->userHasPermission($this, 'manager');
     }
 
     /**
@@ -154,10 +145,7 @@ trait HasPermissions
      */
     public function isOperatorOfQueue(Queue $queue): bool
     {
-        return $this->queuePermissions()
-            ->where('queue_id', $queue->id)
-            ->where('permission_type', 'operator')
-            ->exists();
+        return $queue->userCanOperate($this);
     }
 
     /**

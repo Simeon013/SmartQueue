@@ -142,6 +142,26 @@ class Queue extends Model
     }
 
     /**
+     * Check if a user can operate this queue (manage tickets).
+     */
+    public function userCanOperate(User $user): bool
+    {
+        // Vérifier d'abord les permissions globales
+        if ($this->permissions()
+            ->whereNull('user_id')
+            ->whereIn('permission_type', ['owner', 'manager', 'operator'])
+            ->exists()) {
+            return true;
+        }
+
+        // Vérifier les permissions individuelles
+        return $this->permissions()
+            ->where('user_id', $user->id)
+            ->whereIn('permission_type', ['owner', 'manager', 'operator'])
+            ->exists();
+    }
+
+    /**
      * Check if a user owns this queue.
      */
     public function userOwns(User $user): bool

@@ -111,7 +111,7 @@ class QueueController extends Controller
     public function edit(\App\Models\Queue $queue)
     {
         // Vérifier les permissions pour modifier cette file d'attente
-        if (!auth()->user()->canManageQueue($queue) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanManage(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
             abort(403, 'Vous n\'avez pas la permission de modifier cette file d\'attente.');
         }
 
@@ -122,7 +122,7 @@ class QueueController extends Controller
     public function update(Request $request, \App\Models\Queue $queue)
     {
         // Vérifier les permissions pour modifier cette file d'attente
-        if (!auth()->user()->canManageQueue($queue) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanManage(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
             abort(403, 'Vous n\'avez pas la permission de modifier cette file d\'attente.');
         }
 
@@ -154,7 +154,7 @@ class QueueController extends Controller
     public function addTicket(Request $request, Queue $queue)
     {
         // Vérifier les permissions pour ajouter des tickets à cette file d'attente
-        if (!auth()->user()->canManageQueue($queue) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
             abort(403, 'Vous n\'avez pas la permission d\'ajouter des tickets à cette file d\'attente.');
         }
 
@@ -174,7 +174,7 @@ class QueueController extends Controller
     public function destroyTicket(Queue $queue, Ticket $ticket)
     {
         // Vérifier les permissions pour supprimer des tickets de cette file d'attente
-        if (!auth()->user()->canManageQueue($queue) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
             abort(403, 'Vous n\'avez pas la permission de supprimer des tickets de cette file d\'attente.');
         }
 
@@ -191,7 +191,7 @@ class QueueController extends Controller
     public function updateTicketStatus(Request $request, Queue $queue, Ticket $ticket)
     {
         // Vérifier les permissions pour gérer les tickets de cette file d'attente
-        if (!auth()->user()->canManageQueue($queue) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
             abort(403, 'Vous n\'avez pas la permission de gérer les tickets de cette file d\'attente.');
         }
 
@@ -214,7 +214,7 @@ class QueueController extends Controller
     public function updateTicket(Request $request, Queue $queue, Ticket $ticket)
     {
         // Vérifier les permissions pour gérer les tickets de cette file d'attente
-        if (!auth()->user()->canManageQueue($queue) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
             abort(403, 'Vous n\'avez pas la permission de gérer les tickets de cette file d\'attente.');
         }
 
