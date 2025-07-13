@@ -45,6 +45,7 @@
                             <div class="flex space-x-3">
                                 <a href="{{ route('admin.queues.show', $queue) }}" class="text-blue-600 hover:text-blue-900">Voir</a>
                                 <a href="{{ route('admin.queues.edit', $queue) }}" class="text-yellow-600 hover:text-yellow-900">Modifier</a>
+                                <a href="{{ route('admin.queues.permissions', $queue) }}" class="text-purple-600 hover:text-purple-900">Permissions</a>
                                 <form action="{{ route('admin.queues.destroy', $queue) }}" method="POST" class="inline">
                                     @csrf
                                     @method('DELETE')

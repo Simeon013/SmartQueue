@@ -31,6 +31,21 @@
                 @enderror
             </div>
 
+            <!-- Note informative -->
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <h4 class="text-sm font-medium text-blue-800">Configuration des permissions</h4>
+                        <p class="mt-1 text-sm text-blue-700">
+                            Après la création de la file, le mode "tous les agents - gestion complète" sera automatiquement activé. Vous pourrez ensuite ajuster les permissions selon vos besoins.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex justify-end space-x-3">
                 <a href="{{ route('admin.queues.index') }}"
                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-25 transition ease-in-out duration-150">

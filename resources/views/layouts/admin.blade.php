@@ -14,7 +14,11 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    @stack('styles')
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- jQuery seulement pour l'instant -->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 <body class="font-sans antialiased bg-[#fdf6ee] overflow-x-hidden">
     <div class="flex min-h-screen">
@@ -47,9 +51,13 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 018 0v2m-4-4a4 4 0 100-8 4 4 0 000 8z"/></svg>
                         Statistiques
                     </a>
-                    <a href="#" class="flex items-center gap-3 px-4 py-2 text-base font-medium text-gray-700 rounded-lg hover:bg-blue-50">
+                    <a href="{{ route('admin.users.index') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.users.*') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         Utilisateurs
+                    </a>
+                    <a href="{{ route('admin.roles.index') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.roles.*') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Rôles
                     </a>
                 </nav>
                 <!-- Paramètres en bas -->
@@ -102,21 +110,66 @@
                 </div>
             </header>
             <!-- Page Content avec marge pour le header -->
-            <main class="flex-1 p-10 mt-16">
+            <main class="flex-1 overflow-y-auto bg-gray-50 pt-16">
+                <!-- Notifications -->
                 @if(session('success'))
-                    <div class="p-4 mb-4 text-green-700 bg-green-100 border border-green-400 rounded">
-                        {{ session('success') }}
+                    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4 mx-4 mt-4" role="alert">
+                        <span class="block sm:inline">{{ session('success') }}</span>
+                        <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                            <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <title>Close</title>
+                                <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+                            </svg>
+                        </span>
                     </div>
                 @endif
+
                 @if(session('error'))
-                    <div class="p-4 mb-4 text-red-700 bg-red-100 border border-red-400 rounded">
-                        {{ session('error') }}
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 mx-4 mt-4" role="alert">
+                        <span class="block sm:inline">{{ session('error') }}</span>
+                        <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                            <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <title>Close</title>
+                                <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+                            </svg>
+                        </span>
                     </div>
                 @endif
-                @yield('content')
+
+                @if(session('warning'))
+                    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4 mx-4 mt-4" role="alert">
+                        <span class="block sm:inline">{{ session('warning') }}</span>
+                        <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                            <svg class="fill-current h-6 w-6 text-yellow-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <title>Close</title>
+                                <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+                            </svg>
+                        </span>
+                    </div>
+                @endif
+
+                @if(session('info'))
+                    <div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative mb-4 mx-4 mt-4" role="alert">
+                        <span class="block sm:inline">{{ session('info') }}</span>
+                        <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
+                            <svg class="fill-current h-6 w-6 text-blue-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <title>Close</title>
+                                <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
+                            </svg>
+                        </span>
+                    </div>
+                @endif
+
+                <!-- Page Content -->
+                <div class="py-6">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        @yield('content')
+                    </div>
+                </div>
             </main>
         </div>
     </div>
     @livewireScripts
+    @stack('scripts')
 </body>
 </html>

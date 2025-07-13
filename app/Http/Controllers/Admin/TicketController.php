@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Queue;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class TicketController extends Controller
 {
@@ -14,6 +15,11 @@ class TicketController extends Controller
      */
     public function index(Queue $queue)
     {
+        // Vérifier les permissions pour voir les tickets de cette file d'attente
+        if (!Auth::user()->can('view', $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de voir les tickets de cette file d\'attente.');
+        }
+
         $tickets = $queue->tickets()
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -26,6 +32,11 @@ class TicketController extends Controller
      */
     public function create(Queue $queue)
     {
+        // Vérifier les permissions pour créer des tickets dans cette file d'attente
+        if (!Auth::user()->can('manage_tickets', $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de créer des tickets dans cette file d\'attente.');
+        }
+
         return view('admin.queues.tickets.create', compact('queue'));
     }
 
@@ -34,6 +45,11 @@ class TicketController extends Controller
      */
     public function store(Request $request, Queue $queue)
     {
+        // Vérifier les permissions pour créer des tickets dans cette file d'attente
+        if (!Auth::user()->can('manage_tickets', $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de créer des tickets dans cette file d\'attente.');
+        }
+
         // Plus de validation sur name, email, phone
         $validated = $request->validate([
             'wants_notifications' => 'boolean',
@@ -67,6 +83,11 @@ class TicketController extends Controller
      */
     public function edit(Queue $queue, Ticket $ticket)
     {
+        // Vérifier les permissions pour modifier des tickets dans cette file d'attente
+        if (!Auth::user()->can('manage_tickets', $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de modifier des tickets dans cette file d\'attente.');
+        }
+
         if ($ticket->queue_id !== $queue->id) {
             abort(404);
         }
@@ -79,6 +100,11 @@ class TicketController extends Controller
      */
     public function update(Request $request, Queue $queue, Ticket $ticket)
     {
+        // Vérifier les permissions pour modifier des tickets dans cette file d'attente
+        if (!Auth::user()->can('manage_tickets', $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de modifier des tickets dans cette file d\'attente.');
+        }
+
         if ($ticket->queue_id !== $queue->id) {
             abort(404);
         }
@@ -106,6 +132,11 @@ class TicketController extends Controller
      */
     public function destroy(Queue $queue, Ticket $ticket)
     {
+        // Vérifier les permissions pour supprimer des tickets dans cette file d'attente
+        if (!Auth::user()->can('manage_tickets', $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de supprimer des tickets dans cette file d\'attente.');
+        }
+
         if ($ticket->queue_id !== $queue->id) {
             abort(404);
         }
@@ -118,6 +149,11 @@ class TicketController extends Controller
 
     public function updateStatus(Request $request, Queue $queue, Ticket $ticket)
     {
+        // Vérifier les permissions pour gérer les tickets dans cette file d'attente
+        if (!Auth::user()->can('manage_tickets', $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de gérer les tickets dans cette file d\'attente.');
+        }
+
         if ($ticket->queue_id !== $queue->id) {
             abort(404);
         }

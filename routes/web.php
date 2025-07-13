@@ -48,7 +48,7 @@ Route::middleware(['auth', 'role:agent'])->prefix('agent')->name('agent.')->grou
 });
 
 // Routes admin
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('dashboard');
@@ -68,10 +68,33 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Routes pour la gestion des établissements
     Route::get('settings/establishment', [EstablishmentController::class, 'settings'])->name('establishment.settings');
     Route::put('settings/establishment', [EstablishmentController::class, 'updateSettings'])->name('establishment.settings.update');
+    Route::resource('establishments', EstablishmentController::class)->except(['show']);
 
     // Route pour la page paramètres générale
     Route::get('settings', [SettingsController::class, 'index'])->name('settings');
     Route::post('settings/auto-close', [SettingsController::class, 'updateAutoClose'])->name('settings.auto-close');
+
+    // Routes pour la gestion des utilisateurs
+    Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
+    Route::get('users/{user}/permissions', [\App\Http\Controllers\Admin\UserController::class, 'permissions'])->name('users.permissions');
+    Route::post('users/{user}/assign-role', [\App\Http\Controllers\Admin\UserController::class, 'assignRole'])->name('users.assign-role');
+    Route::post('users/{user}/remove-role', [\App\Http\Controllers\Admin\UserController::class, 'removeRole'])->name('users.remove-role');
+
+    // Routes pour la gestion des rôles
+    Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class);
+    Route::get('roles/{role}/users', [\App\Http\Controllers\Admin\RoleController::class, 'users'])->name('roles.users');
+    Route::post('roles/{role}/assign-permission', [\App\Http\Controllers\Admin\RoleController::class, 'assignPermission'])->name('roles.assign-permission');
+    Route::post('roles/{role}/remove-permission', [\App\Http\Controllers\Admin\RoleController::class, 'removePermission'])->name('roles.remove-permission');
+
+    // Routes pour la gestion des permissions des files
+    Route::get('queues/{queue}/permissions', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'index'])->name('queues.permissions');
+    Route::post('queues/{queue}/permissions/mode', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'setMode'])->name('queues.permissions.mode');
+    Route::post('queues/{queue}/permissions/add-agents', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'addSelectedAgents'])->name('queues.permissions.add-agents');
+    Route::patch('queues/{queue}/permissions/{permission}/update', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'updatePermission'])->name('queues.permissions.update');
+    Route::delete('queues/{queue}/permissions/{permission}', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'destroy'])->name('queues.permissions.destroy');
+    Route::get('queues/{queue}/users', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'queueUsers'])->name('queues.users');
+    Route::get('users/{user}/queues', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'userQueues'])->name('users.queues');
+    Route::get('queues/{queue}/search-users', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'searchUsers'])->name('queues.search-users');
 });
 
 require __DIR__.'/auth.php';
