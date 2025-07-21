@@ -102,17 +102,20 @@ class User extends Authenticatable
 
     // Méthodes de compatibilité pour les vues existantes
     // Ces méthodes retournent des collections vides car nous n'utilisons plus les rôles dynamiques
-    
+
     /**
      * Compatibilité avec l'ancien système de rôles
      */
     public function roles()
     {
+        if (!$this->role) {
+            return collect();
+        }
         return collect([
             (object)['slug' => $this->role->value]
         ]);
     }
-    
+
     /**
      * Vérifie si l'utilisateur a un rôle spécifique (compatibilité)
      */
@@ -121,14 +124,14 @@ class User extends Authenticatable
         if (is_string($role)) {
             return $this->getRole()->value === $role;
         }
-        
+
         if ($role instanceof UserRole) {
             return $this->getRole() === $role;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Gestion des files d'attente accessibles par l'utilisateur
      * À implémenter selon la logique de votre application
@@ -139,10 +142,23 @@ class User extends Authenticatable
         if ($this->isSuperAdmin() || $this->isAdmin()) {
             return Queue::query();
         }
-        
+
         // Les agents ne voient que les files qui leur sont assignées
         // À adapter selon votre logique métier
         return Queue::where('assigned_to', $this->id);
+    }
+
+    /**
+     * Retourne les IDs des files d'attente accessibles à l'utilisateur selon son rôle et ses permissions.
+     */
+    public function getAccessibleQueueIds()
+    {
+        // Admins et super-admins : toutes les files
+        if ($this->isSuperAdmin() || $this->isAdmin()) {
+            return \App\Models\Queue::pluck('id')->toArray();
+        }
+        // Agents : files où il a une permission (via queue_permissions)
+        return $this->queuePermissions()->pluck('queue_id')->toArray();
     }
 
     /**
@@ -175,7 +191,7 @@ class User extends Authenticatable
             'limit' => $limit,
         ];
     }
-    
+
     /**
      * Get the queue permissions for the user.
      */

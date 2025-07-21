@@ -19,9 +19,6 @@ class QueuePermissionController extends Controller
         
         // Récupérer tous les agents
         $agents = User::where('role', 'agent')
-            ->orWhereHas('roles', function ($query) {
-                $query->whereIn('slug', ['agent', 'agent-manager']);
-            })
             ->orderBy('name')
             ->get();
         

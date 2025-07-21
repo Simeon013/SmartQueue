@@ -47,13 +47,16 @@ Route::middleware(['auth', 'role:agent'])->prefix('agent')->name('agent.')->grou
     Route::post('/queues/{queue}/tickets/{ticket}/skip', [App\Http\Controllers\Agent\QueueController::class, 'skip'])->name('queue.skip');
 });
 
-// Routes admin
+// Accessible à tous les utilisateurs authentifiés
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::resource('queues', \App\Http\Controllers\Admin\QueueController::class);
+});
+
+// Les autres routes admin restent protégées
 Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('dashboard');
-
-    Route::resource('queues', QueueController::class);
 
     // Routes pour les tickets dans les files d'attente
     Route::prefix('queues/{queue}/tickets')->name('queues.tickets.')->group(function () {

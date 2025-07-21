@@ -15,23 +15,14 @@ class QueueController extends Controller
 {
     public function index()
     {
-        // Vérifier les permissions pour voir les files d'attente
-        if (!Auth::user()->can('queues.view')) {
-            abort(403, 'Vous n\'avez pas la permission de voir les files d\'attente.');
-        }
-
-        // Filtrer les files d'attente selon les permissions de l'utilisateur
         $user = Auth::user();
-        
-        // Si l'utilisateur a la permission de voir toutes les files (super-admin ou admin avec permission globale)
+        // On laisse l'accès à tous les utilisateurs authentifiés, la liste sera filtrée selon les permissions
         if ($user->can('queues.view_all') || $user->hasRole('super-admin')) {
             $queues = Queue::latest()->paginate(10);
         } else {
-            // Sinon, ne montrer que les files d'attente auxquelles l'utilisateur a accès via permissions granulaires
             $accessibleQueueIds = $user->getAccessibleQueueIds();
             $queues = Queue::whereIn('id', $accessibleQueueIds)->latest()->paginate(10);
         }
-
         return view('admin.queues.index', compact('queues'));
     }
 
