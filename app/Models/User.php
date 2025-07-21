@@ -2,22 +2,21 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\UserRole;
+use App\Models\QueuePermission;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Log;
-use App\Traits\HasPermissions;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasPermissions;
+    use HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
@@ -29,7 +28,7 @@ class User extends Authenticatable
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -37,107 +36,113 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
      * @return array<string, string>
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'role' => UserRole::class,
     ];
 
     /**
-     * Get the roles for this user.
+     * Get the user's role.
      */
-    public function roles()
+    public function getRole(): UserRole
     {
-        return $this->belongsToMany(Role::class, 'user_roles');
+        return $this->role ?? UserRole::AGENT;
     }
 
     /**
-     * Get the queue permissions for this user.
+     * Check if the user has any of the given roles.
      */
-    public function queuePermissions()
+    public function hasAnyRole(array $roles): bool
     {
-        return $this->hasMany(QueuePermission::class);
+        return in_array($this->getRole(), $roles);
     }
 
     /**
-     * Get the queues this user has permissions for.
+     * Check if the user has a specific permission.
      */
-    public function accessibleQueues()
+    public function can($ability, $arguments = []): bool
     {
-        return Queue::whereHas('permissions', function ($query) {
-            $query->where('user_id', $this->id);
-        });
+        // Si c'est une permission de modèle, on la traite séparément
+        if (!is_string($ability) || str_contains($ability, '\\')) {
+            return parent::can($ability, $arguments);
+        }
+
+        return $this->getRole()->can($ability);
     }
 
     /**
-     * Get the queues this user owns.
+     * Check if the user is a super admin.
      */
-    public function ownedQueues()
+    public function isSuperAdmin(): bool
     {
-        return Queue::whereHas('permissions', function ($query) {
-            $query->where('user_id', $this->id)
-                  ->where('permission_type', 'owner');
-        });
+        return $this->hasRole(UserRole::SUPER_ADMIN);
     }
 
     /**
-     * Get the queues this user can manage.
-     */
-    public function manageableQueues()
-    {
-        return Queue::whereHas('permissions', function ($query) {
-            $query->where('user_id', $this->id)
-                  ->whereIn('permission_type', ['owner', 'manager']);
-        });
-    }
-
-    /**
-     * Get the IDs of queues this user has any permission for.
-     *
-     * @return array
-     */
-    public function getAccessibleQueueIds(): array
-    {
-        // Récupérer les permissions individuelles
-        $individualPermissions = $this->queuePermissions()->pluck('queue_id')->unique();
-        
-        // Récupérer les permissions globales (user_id = null)
-        $globalPermissions = \App\Models\QueuePermission::whereNull('user_id')->pluck('queue_id')->unique();
-        
-        // Combiner et retourner
-        return $individualPermissions->merge($globalPermissions)->unique()->toArray();
-    }
-
-        /**
-     * Check if the user is an admin (legacy method for backward compatibility).
-     *
-     * @return bool
+     * Check if the user is an admin.
+     * Includes super admins as they have all admin privileges.
      */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin' || $this->hasRole('admin') || $this->hasRole('super-admin');
+        return $this->hasRole(UserRole::ADMIN) || $this->isSuperAdmin();
     }
 
     /**
-     * Check if the user is an agent (legacy method for backward compatibility).
-     *
-     * @return bool
+     * Check if the user is an agent.
      */
     public function isAgent(): bool
     {
-        return $this->role === 'agent' || $this->hasRole('agent') || $this->hasRole('agent-manager');
+        return $this->hasRole(UserRole::AGENT);
     }
 
-    public function managedQueues()
+    // Méthodes de compatibilité pour les vues existantes
+    // Ces méthodes retournent des collections vides car nous n'utilisons plus les rôles dynamiques
+    
+    /**
+     * Compatibilité avec l'ancien système de rôles
+     */
+    public function roles()
     {
-        return Queue::whereHas('establishment', function ($query) {
-            $query->whereHas('admins', function ($q) {
-                $q->where('users.id', $this->id);
-            });
-        });
+        return collect([
+            (object)['slug' => $this->role->value]
+        ]);
+    }
+    
+    /**
+     * Vérifie si l'utilisateur a un rôle spécifique (compatibilité)
+     */
+    public function hasRole($role): bool
+    {
+        if (is_string($role)) {
+            return $this->getRole()->value === $role;
+        }
+        
+        if ($role instanceof UserRole) {
+            return $this->getRole() === $role;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Gestion des files d'attente accessibles par l'utilisateur
+     * À implémenter selon la logique de votre application
+     */
+    public function accessibleQueues()
+    {
+        // Les administrateurs voient toutes les files
+        if ($this->isSuperAdmin() || $this->isAdmin()) {
+            return Queue::query();
+        }
+        
+        // Les agents ne voient que les files qui leur sont assignées
+        // À adapter selon votre logique métier
+        return Queue::where('assigned_to', $this->id);
     }
 
     /**
@@ -169,5 +174,13 @@ class User extends Authenticatable
             'user_id' => $this->id,
             'limit' => $limit,
         ];
+    }
+    
+    /**
+     * Get the queue permissions for the user.
+     */
+    public function queuePermissions()
+    {
+        return $this->hasMany(QueuePermission::class);
     }
 }

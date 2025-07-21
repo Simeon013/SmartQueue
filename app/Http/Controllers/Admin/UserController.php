@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +17,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::with('roles')->latest()->paginate(10);
+        $users = User::latest()->paginate(10);
         return view('admin.users.index', compact('users'));
     }
 
@@ -26,7 +26,7 @@ class UserController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
+        $roles = UserRole::cases();
         return view('admin.users.create', compact('roles'));
     }
 
@@ -39,19 +39,15 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'roles' => 'array|exists:roles,id',
+            'role' => 'required|in:' . implode(',', array_column(UserRole::cases(), 'value')),
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
         ]);
-
-        // Assigner les rôles
-        if (isset($validated['roles'])) {
-            $user->syncRoles($validated['roles']);
-        }
 
         return redirect()->route('admin.users.index')
             ->with('success', "Utilisateur '{$user->name}' créé avec succès. Un email de bienvenue a été envoyé.");
@@ -62,7 +58,6 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        $user->load(['roles', 'queuePermissions.queue']);
         return view('admin.users.show', compact('user'));
     }
 
@@ -71,8 +66,7 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        $roles = Role::all();
-        $user->load('roles');
+        $roles = UserRole::cases();
         return view('admin.users.edit', compact('user', 'roles'));
     }
 
@@ -85,25 +79,35 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-            'roles' => 'array|exists:roles,id',
+            'role' => 'required|in:' . implode(',', array_column(UserRole::cases(), 'value')),
         ]);
 
-        $oldRoles = $user->roles->pluck('id')->toArray();
-        $newRoles = $validated['roles'] ?? [];
+        $oldRole = $user->role;
+        $newRole = $validated['role'];
 
-        $user->update([
+        $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-        ]);
+            'role' => $newRole,
+        ];
 
         // Mettre à jour le mot de passe si fourni
         if (isset($validated['password'])) {
-            $user->update(['password' => Hash::make($validated['password'])]);
+            $updateData['password'] = Hash::make($validated['password']);
         }
 
-        // Synchroniser les rôles
-        if (isset($validated['roles'])) {
-            $user->syncRoles($validated['roles']);
+        $user->update($updateData);
+
+        // Log des modifications de rôle
+        if ($oldRole !== $newRole) {
+            activity()
+                ->causedBy(Auth::user())
+                ->performedOn($user)
+                ->withProperties([
+                    'old_role' => $oldRole,
+                    'new_role' => $newRole
+                ])
+                ->log('Rôle modifié');
         }
 
         $message = "Utilisateur '{$user->name}' mis à jour avec succès.";
@@ -129,8 +133,6 @@ class UserController extends Controller
         $userName = $user->name;
         $userEmail = $user->email;
 
-
-
         $user->delete();
 
         return redirect()->route('admin.users.index')
@@ -142,11 +144,20 @@ class UserController extends Controller
      */
     public function permissions(User $user)
     {
-        $user->load(['roles.permissions', 'queuePermissions.queue']);
-        $allPermissions = \App\Models\Permission::all();
+        // Charger uniquement les permissions des files d'attente
+        $user->load('queuePermissions.queue');
+        
+        // Récupérer toutes les files d'attente pour le formulaire d'ajout
         $allQueues = \App\Models\Queue::all();
-
-        return view('admin.users.permissions', compact('user', 'allPermissions', 'allQueues'));
+        
+        // Récupérer les permissions du rôle de l'utilisateur
+        $rolePermissions = $user->role ? $user->role->getPermissions() : [];
+        
+        return view('admin.users.permissions', [
+            'user' => $user,
+            'allQueues' => $allQueues,
+            'rolePermissions' => $rolePermissions
+        ]);
     }
 
     /**

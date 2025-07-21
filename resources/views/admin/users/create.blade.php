@@ -35,15 +35,16 @@
                         </div>
 
                         <div>
-                            <x-input-label for="roles" :value="__('Rôles')" />
-                            <select id="roles" name="roles[]" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" multiple>
-                                @foreach($roles as $role)
-                                    <option value="{{ $role->id }}" {{ in_array($role->id, old('roles', [])) ? 'selected' : '' }}>
-                                        {{ $role->name }} - {{ $role->description }}
+                            <x-input-label for="role" :value="__('Rôle')" />
+                            <select id="role" name="role" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm" required>
+                                <option value="">Sélectionnez un rôle</option>
+                                @foreach(\App\Enums\UserRole::cases() as $role)
+                                    <option value="{{ $role->value }}" {{ old('role') === $role->value ? 'selected' : '' }}>
+                                        {{ $role->label() }} - {{ $role->getDescription() }}
                                     </option>
                                 @endforeach
                             </select>
-                            <x-input-error :messages="$errors->get('roles')" class="mt-2" />
+                            <x-input-error :messages="$errors->get('role')" class="mt-2" />
                         </div>
 
                         <div class="flex items-center justify-end mt-4">

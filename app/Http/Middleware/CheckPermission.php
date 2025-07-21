@@ -15,12 +15,16 @@ class CheckPermission
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        if (!$request->user()) {
-            abort(401, 'Non authentifié.');
+        $user = $request->user();
+        
+        // Vérifier si l'utilisateur est connecté
+        if (!$user) {
+            abort(401, 'Vous devez être connecté pour accéder à cette ressource.');
         }
 
-        if (!$request->user()->hasPermission($permission)) {
-            abort(403, 'Permission insuffisante pour accéder à cette ressource.');
+        // Vérifier si l'utilisateur a la permission requise via son rôle
+        if (!$user->can($permission)) {
+            abort(403, 'Vous n\'avez pas les permissions nécessaires pour accéder à cette ressource.');
         }
 
         return $next($request);

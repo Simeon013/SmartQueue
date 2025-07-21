@@ -80,11 +80,21 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix
     Route::post('users/{user}/assign-role', [\App\Http\Controllers\Admin\UserController::class, 'assignRole'])->name('users.assign-role');
     Route::post('users/{user}/remove-role', [\App\Http\Controllers\Admin\UserController::class, 'removeRole'])->name('users.remove-role');
 
-    // Routes pour la gestion des rôles
-    Route::resource('roles', \App\Http\Controllers\Admin\RoleController::class);
-    Route::get('roles/{role}/users', [\App\Http\Controllers\Admin\RoleController::class, 'users'])->name('roles.users');
-    Route::post('roles/{role}/assign-permission', [\App\Http\Controllers\Admin\RoleController::class, 'assignPermission'])->name('roles.assign-permission');
-    Route::post('roles/{role}/remove-permission', [\App\Http\Controllers\Admin\RoleController::class, 'removePermission'])->name('roles.remove-permission');
+    // Routes pour la gestion des rôles (statiques)
+    Route::get('roles', [\App\Http\Controllers\Admin\RoleController::class, 'index'])->name('roles.index');
+    Route::get('roles/{roleSlug}', [\App\Http\Controllers\Admin\RoleController::class, 'show'])->name('roles.show');
+    Route::get('roles/{roleSlug}/users', [\App\Http\Controllers\Admin\RoleController::class, 'users'])->name('roles.users');
+    
+    // Désactiver les routes non utilisées pour la gestion statique des rôles
+    Route::get('roles/create', [\App\Http\Controllers\Admin\RoleController::class, 'create'])->name('roles.create');
+    Route::post('roles', [\App\Http\Controllers\Admin\RoleController::class, 'store'])->name('roles.store');
+    Route::get('roles/{roleSlug}/edit', [\App\Http\Controllers\Admin\RoleController::class, 'edit'])->name('roles.edit');
+    Route::put('roles/{roleSlug}', [\App\Http\Controllers\Admin\RoleController::class, 'update'])->name('roles.update');
+    Route::delete('roles/{roleSlug}', [\App\Http\Controllers\Admin\RoleController::class, 'destroy'])->name('roles.destroy');
+    
+    // Désactiver les routes de gestion des permissions (gérées en dur dans l'énumération)
+    Route::post('roles/{roleSlug}/assign-permission', [\App\Http\Controllers\Admin\RoleController::class, 'assignPermission'])->name('roles.assign-permission');
+    Route::post('roles/{roleSlug}/remove-permission', [\App\Http\Controllers\Admin\RoleController::class, 'removePermission'])->name('roles.remove-permission');
 
     // Routes pour la gestion des permissions des files
     Route::get('queues/{queue}/permissions', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'index'])->name('queues.permissions');

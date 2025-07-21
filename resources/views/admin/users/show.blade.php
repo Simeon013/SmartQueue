@@ -33,32 +33,47 @@
         </div>
     </div>
 
-    <!-- Rôles -->
+    <!-- Rôle -->
     <div class="bg-white rounded-lg shadow">
         <div class="p-6 border-b border-gray-200">
             <div class="flex justify-between items-center">
-                <h3 class="text-lg font-medium text-gray-900">Rôles attribués</h3>
+                <h3 class="text-lg font-medium text-gray-900">Rôle attribué</h3>
                 <a href="{{ route('admin.users.edit', $user) }}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">
-                    Modifier les rôles
+                    Modifier le rôle
                 </a>
             </div>
         </div>
         <div class="p-6">
-            @if($user->roles->count() > 0)
+            @php
+                $userRole = $user->role;
+                $rolePermissions = $userRole ? $userRole->getPermissions() : [];
+            @endphp
+            
+            @if($userRole)
                 <div class="space-y-3">
-                    @foreach($user->roles as $role)
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                                <h4 class="text-sm font-medium text-gray-900">{{ $role->name }}</h4>
-                                @if($role->description)
-                                    <p class="text-sm text-gray-500 mt-1">{{ $role->description }}</p>
-                                @endif
-                            </div>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {{ $role->permissions->count() }} permissions
-                            </span>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-900">{{ $userRole->label() }}</h4>
+                            <p class="text-sm text-gray-500 mt-1">{{ $userRole->getDescription() }}</p>
                         </div>
-                    @endforeach
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {{ count($rolePermissions) }} permissions
+                        </span>
+                    </div>
+                    
+                    <!-- Affichage des permissions du rôle -->
+                    @if(count($rolePermissions) > 0)
+                        <div class="mt-4">
+                            <h5 class="text-sm font-medium text-gray-700 mb-2">Permissions associées :</h5>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                @foreach($rolePermissions as $permission)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                                        {{ $permission }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
             @else
                 <p class="text-gray-500 text-center py-4">Aucun rôle attribué</p>

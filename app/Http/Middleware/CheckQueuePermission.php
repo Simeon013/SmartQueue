@@ -2,10 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\UserRole;
+use App\Models\Queue;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use App\Models\Queue;
 
 class CheckQueuePermission
 {
@@ -16,8 +17,11 @@ class CheckQueuePermission
      */
     public function handle(Request $request, Closure $next, string $permissionType = null): Response
     {
-        if (!$request->user()) {
-            abort(401, 'Non authentifié.');
+        $user = $request->user();
+        
+        // Vérifier si l'utilisateur est connecté
+        if (!$user) {
+            abort(401, 'Vous devez être connecté pour accéder à cette ressource.');
         }
 
         // Récupérer la file d'attente depuis la route
@@ -28,15 +32,31 @@ class CheckQueuePermission
         }
 
         // Les super admins ont accès à tout
-        if ($request->user()->isSuperAdmin()) {
+        if ($user->isSuperAdmin()) {
             return $next($request);
         }
 
-        // Vérifier si l'utilisateur a une permission sur cette file
-        if (!$request->user()->hasQueuePermission($queue, $permissionType)) {
-            abort(403, 'Vous n\'avez pas les permissions nécessaires pour accéder à cette file d\'attente.');
+        // Vérifier les permissions en fonction du rôle
+        if ($user->isAdmin()) {
+            // Les admins ont accès à toutes les files
+            return $next($request);
         }
 
-        return $next($request);
+        // Pour les agents, vérifier s'ils ont accès à cette file spécifique
+        if ($user->isAgent()) {
+            // Vérifier si cette file est assignée à l'agent
+            // Cette logique peut être ajustée selon vos besoins
+            if ($queue->assigned_to === $user->id) {
+                return $next($request);
+            }
+            
+            // Vérifier les permissions spécifiques si nécessaire
+            if ($permissionType && !$user->can($permissionType)) {
+                abort(403, 'Vous n\'avez pas les permissions nécessaires pour effectuer cette action sur cette file.');
+            }
+        }
+
+        // Si on arrive ici, l'utilisateur n'a pas les droits nécessaires
+        abort(403, 'Vous n\'avez pas les permissions nécessaires pour accéder à cette file d\'attente.');
     }
 }

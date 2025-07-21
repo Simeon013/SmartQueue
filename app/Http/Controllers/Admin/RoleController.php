@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
-use App\Models\Role;
-use App\Models\Permission;
 use Illuminate\Http\Request;
 
 class RoleController extends Controller
@@ -14,153 +13,133 @@ class RoleController extends Controller
      */
     public function index()
     {
-        $roles = Role::with('permissions')->latest()->paginate(10);
+        // Récupérer les rôles statiques depuis l'énumération
+        $roles = collect(UserRole::cases())->map(function ($role) {
+            return (object) [
+                'name' => $role->label(),
+                'slug' => $role->value,
+                'description' => $role->label(), // Utilisation de label() comme description pour le moment
+                'permissions' => collect($role->getPermissions())
+            ];
+        });
+
         return view('admin.roles.index', compact('roles'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Afficher les détails d'un rôle
+     */
+    public function show(string $roleSlug)
+    {
+        $role = UserRole::tryFrom($roleSlug);
+        
+        if (!$role) {
+            abort(404, 'Rôle non trouvé');
+        }
+
+        $roleData = (object) [
+            'name' => $role->label(),
+            'slug' => $role->value,
+            'description' => $role->label(), // Utilisation de label() comme description pour le moment
+            'permissions' => collect($role->getPermissions())
+        ];
+
+        return view('admin.roles.show', compact('roleData'));
+    }
+
+    /**
+     * Les méthodes suivantes ne sont plus utilisées car les rôles sont maintenant gérés de manière statique
+     * mais sont conservées pour éviter les erreurs de routage
      */
     public function create()
     {
-        $permissions = Permission::all();
-        $permissionsByGroup = $permissions->groupBy(function ($permission) {
-            return explode('.', $permission->slug)[0];
-        });
-
-        return view('admin.roles.create', compact('permissions', 'permissionsByGroup'));
+        return redirect()->route('admin.roles.index')
+            ->with('info', 'La création de rôles est désactivée. Les rôles sont maintenant gérés de manière statique.');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:roles',
-            'description' => 'nullable|string',
-            'permissions' => 'array|exists:permissions,id',
-        ]);
-
-        $role = Role::create([
-            'name' => $validated['name'],
-            'slug' => $validated['slug'],
-            'description' => $validated['description'] ?? null,
-        ]);
-
-        // Assigner les permissions
-        if (isset($validated['permissions'])) {
-            $role->permissions()->sync($validated['permissions']);
-        }
-
         return redirect()->route('admin.roles.index')
-            ->with('success', 'Rôle créé avec succès.');
+            ->with('info', 'La création de rôles est désactivée. Les rôles sont maintenant gérés de manière statique.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Role $role)
+    public function edit(string $roleSlug)
     {
-        $role->load(['permissions', 'users']);
-        return view('admin.roles.show', compact('role'));
+        return redirect()->route('admin.roles.show', $roleSlug)
+            ->with('info', 'La modification des rôles est désactivée. Les rôles sont maintenant gérés de manière statique.');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Role $role)
+    public function update(Request $request, string $roleSlug)
     {
-        $permissions = Permission::all();
-        $permissionsByGroup = $permissions->groupBy(function ($permission) {
-            return explode('.', $permission->slug)[0];
-        });
-
-        $role->load('permissions');
-        return view('admin.roles.edit', compact('role', 'permissions', 'permissionsByGroup'));
+        return redirect()->route('admin.roles.show', $roleSlug)
+            ->with('info', 'La modification des rôles est désactivée. Les rôles sont maintenant gérés de manière statique.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Role $role)
+    public function destroy(string $roleSlug)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:roles,slug,' . $role->id,
-            'description' => 'nullable|string',
-            'permissions' => 'array|exists:permissions,id',
-        ]);
-
-        $role->update([
-            'name' => $validated['name'],
-            'slug' => $validated['slug'],
-            'description' => $validated['description'] ?? null,
-        ]);
-
-        // Synchroniser les permissions
-        if (isset($validated['permissions'])) {
-            $role->permissions()->sync($validated['permissions']);
-        }
-
         return redirect()->route('admin.roles.index')
-            ->with('success', 'Rôle mis à jour avec succès.');
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Role $role)
-    {
-        // Empêcher la suppression des rôles système
-        if (in_array($role->slug, ['super-admin', 'admin', 'agent-manager', 'agent'])) {
-            return redirect()->route('admin.roles.index')
-                ->with('error', 'Ce rôle système ne peut pas être supprimé.');
-        }
-
-        $role->delete();
-
-        return redirect()->route('admin.roles.index')
-            ->with('success', 'Rôle supprimé avec succès.');
+            ->with('info', 'La suppression des rôles est désactivée. Les rôles sont maintenant gérés de manière statique.');
     }
 
     /**
      * Afficher les utilisateurs ayant ce rôle.
      */
-    public function users(Role $role)
+    public function users(string $roleSlug)
     {
-        $role->load('users');
-        return view('admin.roles.users', compact('role'));
+        // Vérifier si le slug correspond à une valeur valide de l'énumération
+        $role = null;
+        foreach (UserRole::cases() as $case) {
+            if ($case->value === $roleSlug) {
+                $role = $case;
+                break;
+            }
+        }
+        
+        if (!$role) {
+            abort(404, 'Rôle non trouvé');
+        }
+        
+        return view('admin.roles.users', [
+            'roleSlug' => $roleSlug,
+            'role' => (object) [
+                'name' => $role->label(),
+                'slug' => $role->value,
+                'description' => $role->getDescription()
+            ]
+        ]);
     }
 
     /**
      * Attribuer une permission à un rôle.
+     * Cette méthode est désactivée car les permissions sont maintenant gérées de manière statique.
      */
-    public function assignPermission(Request $request, Role $role)
+    public function assignPermission(Request $request, string $roleSlug)
     {
-        $validated = $request->validate([
-            'permission_id' => 'required|exists:permissions,id',
-        ]);
-
-        $permission = Permission::find($validated['permission_id']);
-        $role->assignPermission($permission);
-
-        return redirect()->back()->with('success', "Permission '{$permission->name}' attribuée avec succès.");
+        $role = UserRole::tryFrom($roleSlug);
+        
+        if (!$role) {
+            abort(404, 'Rôle non trouvé');
+        }
+        
+        return redirect()
+            ->route('admin.roles.show', $roleSlug)
+            ->with('info', 'La gestion des permissions est maintenant effectuée de manière statique dans le code.');
     }
 
     /**
      * Retirer une permission d'un rôle.
+     * Cette méthode est désactivée car les permissions sont maintenant gérées de manière statique.
      */
-    public function removePermission(Request $request, Role $role)
+    public function removePermission(Request $request, string $roleSlug)
     {
-        $validated = $request->validate([
-            'permission_id' => 'required|exists:permissions,id',
-        ]);
-
-        $permission = Permission::find($validated['permission_id']);
-        $role->removePermission($permission);
-
-        return redirect()->back()->with('success', "Permission '{$permission->name}' retirée avec succès.");
+        $role = UserRole::tryFrom($roleSlug);
+        
+        if (!$role) {
+            abort(404, 'Rôle non trouvé');
+        }
+        
+        return redirect()
+            ->route('admin.roles.show', $roleSlug)
+            ->with('info', 'La gestion des permissions est maintenant effectuée de manière statique dans le code.');
     }
 }

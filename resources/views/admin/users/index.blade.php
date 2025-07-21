@@ -3,6 +3,12 @@
 @section('header', 'Gestion des Utilisateurs')
 
 @section('content')
+@if(!isset($users) || is_null($users))
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+        <strong class="font-bold">Erreur !</strong>
+        <span class="block sm:inline">Impossible de charger la liste des utilisateurs. Veuillez réessayer plus tard.</span>
+    </div>
+@else
 <div class="bg-white rounded-lg shadow">
     <div class="p-6 border-b border-gray-200">
         <div class="flex justify-between items-center">
@@ -54,13 +60,16 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex flex-wrap gap-1">
-                                @forelse($user->roles as $role)
+                                @php
+                                    $userRole = $user->role ?? null;
+                                @endphp
+                                @if($userRole)
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        {{ $role->name }}
+                                        {{ $userRole->label() }}
                                     </span>
-                                @empty
+                                @else
                                     <span class="text-sm text-gray-500">Aucun rôle</span>
-                                @endforelse
+                                @endif
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -98,4 +107,5 @@
         </div>
     @endif
 </div>
+@endif
 @endsection

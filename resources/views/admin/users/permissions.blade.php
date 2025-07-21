@@ -12,36 +12,34 @@
         </div>
     </div>
 
-    <!-- Permissions via les rôles -->
+    <!-- Permissions via le rôle -->
     <div class="bg-white rounded-lg shadow">
         <div class="p-6 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Permissions via les rôles</h3>
-            <p class="text-sm text-gray-500 mt-1">Ces permissions sont héritées des rôles attribués à l'utilisateur</p>
+            <h3 class="text-lg font-medium text-gray-900">Permissions via le rôle</h3>
+            <p class="text-sm text-gray-500 mt-1">Ces permissions sont héritées du rôle attribué à l'utilisateur</p>
         </div>
         <div class="p-6">
-            @if($user->roles->count() > 0)
+            @if($user->role)
                 <div class="space-y-4">
-                    @foreach($user->roles as $role)
-                        <div class="border border-gray-200 rounded-lg p-4">
-                            <div class="flex items-center justify-between mb-3">
-                                <h4 class="text-sm font-medium text-gray-900">{{ $role->name }}</h4>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    {{ $role->permissions->count() }} permissions
-                                </span>
-                            </div>
-                            @if($role->permissions->count() > 0)
-                                <div class="flex flex-wrap gap-2">
-                                    @foreach($role->permissions as $permission)
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            {{ $permission->name }}
-                                        </span>
-                                    @endforeach
-                                </div>
-                            @else
-                                <p class="text-sm text-gray-500">Aucune permission</p>
-                            @endif
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-medium text-gray-900">{{ $user->role->label() }}</h4>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {{ count($rolePermissions) }} permissions
+                            </span>
                         </div>
-                    @endforeach
+                        @if(count($rolePermissions) > 0)
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                @foreach($rolePermissions as $permission)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                                        {{ $permission }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-sm text-gray-500">Aucune permission</p>
+                        @endif
+                    </div>
                 </div>
             @else
                 <p class="text-gray-500 text-center py-4">Aucun rôle attribué</p>
