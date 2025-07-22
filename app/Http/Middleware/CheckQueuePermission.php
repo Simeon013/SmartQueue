@@ -42,11 +42,20 @@ class CheckQueuePermission
             return $next($request);
         }
 
-        // Pour les agents, vérifier s'ils ont accès à cette file spécifique
+        // Pour les agents, vérifier les permissions sur la file
         if ($user->isAgent()) {
-            // Vérifier si cette file est assignée à l'agent
-            // Cette logique peut être ajustée selon vos besoins
-            if ($queue->assigned_to === $user->id) {
+            // Vérifier d'abord si l'utilisateur a la permission de gérer cette file
+            if ($permissionType === 'manage' && $queue->userCanManage($user)) {
+                return $next($request);
+            }
+            
+            // Vérifier si l'utilisateur a la permission d'opérer sur cette file
+            if ($permissionType === 'operate' && $queue->userCanOperate($user)) {
+                return $next($request);
+            }
+            
+            // Vérifier si cette file est assignée à l'agent (pour rétrocompatibilité)
+            if (isset($queue->assigned_to) && $queue->assigned_to === $user->id) {
                 return $next($request);
             }
             

@@ -78,15 +78,25 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-3">
                                 <a href="{{ route('admin.users.show', $user) }}" class="text-blue-600 hover:text-blue-900">Voir</a>
-                                <a href="{{ route('admin.users.edit', $user) }}" class="text-yellow-600 hover:text-yellow-900">Modifier</a>
-                                <a href="{{ route('admin.users.permissions', $user) }}" class="text-green-600 hover:text-green-900">Permissions</a>
-                                @if($user->id !== auth()->id())
+                                
+                                @can('users.edit', $user)
+                                    <a href="{{ route('admin.users.edit', $user) }}" class="text-yellow-600 hover:text-yellow-900">Modifier</a>
+                                @endcan
+                                
+                                @can('users.manage_permissions', $user)
+                                    <a href="{{ route('admin.users.permissions', $user) }}" class="text-green-600 hover:text-green-900">Permissions</a>
+                                @endcan
+                                
+                                @can('users.delete', $user)
                                     <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">Supprimer</button>
+                                        <button type="submit" class="text-red-600 hover:text-red-900" 
+                                                onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">
+                                            Supprimer
+                                        </button>
                                     </form>
-                                @endif
+                                @endcan
                             </div>
                         </td>
                     </tr>

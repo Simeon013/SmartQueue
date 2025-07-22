@@ -17,7 +17,23 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::latest()->paginate(10);
+        $user = auth()->user();
+        
+        // Super admin voit tous les utilisateurs
+        if ($user->isSuperAdmin()) {
+            $users = User::latest()->paginate(10);
+        }
+        // Admin ne voit que les agents
+        elseif ($user->isAdmin()) {
+            $users = User::where('role', UserRole::AGENT->value)
+                        ->latest()
+                        ->paginate(10);
+        }
+        // Les autres rôles ne devraient pas accéder à cette page (géré par le middleware)
+        else {
+            $users = collect();
+        }
+        
         return view('admin.users.index', compact('users'));
     }
 
@@ -66,8 +82,31 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        $roles = UserRole::cases();
-        return view('admin.users.edit', compact('user', 'roles'));
+        $currentUser = auth()->user();
+        
+        // Empêcher un utilisateur de se modifier lui-même
+        if ($currentUser->id === $user->id) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Vous ne pouvez pas modifier votre propre compte depuis cette interface.');
+        }
+        
+        // Si l'utilisateur est admin, il ne peut pas modifier les autres admins ou super admins
+        if ($currentUser->isAdmin() && ($user->isAdmin() || $user->isSuperAdmin())) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Vous n\'êtes pas autorisé à modifier cet utilisateur.');
+        }
+        
+        $roles = collect(UserRole::cases());
+        
+        // Si l'utilisateur est admin, il ne peut pas modifier les rôles
+        if ($currentUser->isAdmin()) {
+            $roles = $roles->filter(fn($role) => $role === UserRole::AGENT);
+        }
+        
+        return view('admin.users.edit', [
+            'user' => $user,
+            'roles' => $roles->values()->all()
+        ]);
     }
 
     /**
@@ -75,37 +114,64 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        $currentUser = auth()->user();
+        
+        // Empêcher un utilisateur de se modifier lui-même
+        if ($currentUser->id === $user->id) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Vous ne pouvez pas modifier votre propre compte depuis cette interface.');
+        }
+        
+        // Vérifier les permissions
+        if ($currentUser->isAdmin() && ($user->isAdmin() || $user->isSuperAdmin())) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Vous n\'êtes pas autorisé à modifier cet utilisateur.');
+        }
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
             'role' => 'required|in:' . implode(',', array_column(UserRole::cases(), 'value')),
         ]);
+        
+        // Si l'utilisateur est admin, il ne peut pas modifier les rôles
+        if ($currentUser->isAdmin() && $validated['role'] !== UserRole::AGENT->value) {
+            return redirect()->back()
+                ->with('error', 'Vous n\'êtes pas autorisé à attribuer ce rôle.');
+        }
 
         $oldRole = $user->role;
-        $newRole = $validated['role'];
+        $newRole = UserRole::from($validated['role']);
 
         $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'role' => $newRole,
         ];
+        
+        // Ne mettre à jour le rôle que si l'utilisateur a la permission
+        if ($currentUser->isSuperAdmin()) {
+            $updateData['role'] = $newRole;
+        } else {
+            // Pour les admins, conserver le rôle existant
+            $updateData['role'] = $user->role;
+        }
 
         // Mettre à jour le mot de passe si fourni
-        if (isset($validated['password'])) {
+        if (!empty($validated['password'])) {
             $updateData['password'] = Hash::make($validated['password']);
         }
 
         $user->update($updateData);
 
         // Log des modifications de rôle
-        if ($oldRole !== $newRole) {
+        if ($currentUser->isSuperAdmin() && $oldRole !== $newRole) {
             activity()
-                ->causedBy(Auth::user())
+                ->causedBy($currentUser)
                 ->performedOn($user)
                 ->withProperties([
-                    'old_role' => $oldRole,
-                    'new_role' => $newRole
+                    'old_role' => $oldRole?->value,
+                    'new_role' => $newRole->value
                 ])
                 ->log('Rôle modifié');
         }
@@ -124,15 +190,34 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        $currentUser = auth()->user();
+        
         // Empêcher la suppression de l'utilisateur connecté
-        if ($user->id === Auth::id()) {
+        if ($user->id === $currentUser->id) {
             return redirect()->route('admin.users.index')
                 ->with('error', 'Vous ne pouvez pas supprimer votre propre compte.');
         }
+        
+        // Vérifier les permissions
+        if ($currentUser->isAdmin() && ($user->isAdmin() || $user->isSuperAdmin())) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Vous n\'êtes pas autorisé à supprimer cet utilisateur.');
+        }
+        
+        // Vérifier que l'utilisateur a le droit de supprimer
+        if (!$currentUser->isSuperAdmin() && $currentUser->isAdmin() && $user->isSuperAdmin()) {
+            return redirect()->route('admin.users.index')
+                ->with('error', 'Action non autorisée.');
+        }
 
         $userName = $user->name;
-        $userEmail = $user->email;
-
+        
+        // Journaliser la suppression
+        activity()
+            ->causedBy($currentUser)
+            ->performedOn($user)
+            ->log('Utilisateur supprimé');
+            
         $user->delete();
 
         return redirect()->route('admin.users.index')

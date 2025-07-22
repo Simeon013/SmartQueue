@@ -39,13 +39,13 @@ Route::middleware('auth')->group(function () {
 });
 
 // Routes agent
-Route::middleware(['auth', 'role:agent'])->prefix('agent')->name('agent.')->group(function () {
-    Route::get('/queues/{queue}', [App\Http\Controllers\Agent\QueueController::class, 'dashboard'])->name('queue.dashboard');
-    Route::get('/queues/{queue}/tickets', [App\Http\Controllers\Agent\QueueController::class, 'getTickets'])->name('queue.tickets');
-    Route::post('/queues/{queue}/next', [App\Http\Controllers\Agent\QueueController::class, 'callNext'])->name('queue.next');
-    Route::post('/queues/{queue}/tickets/{ticket}/present', [App\Http\Controllers\Agent\QueueController::class, 'markPresent'])->name('queue.present');
-    Route::post('/queues/{queue}/tickets/{ticket}/skip', [App\Http\Controllers\Agent\QueueController::class, 'skip'])->name('queue.skip');
-});
+// Route::middleware(['auth', 'role:agent'])->prefix('agent')->name('agent.')->group(function () {
+//     Route::get('/queues/{queue}', [App\Http\Controllers\Agent\QueueController::class, 'dashboard'])->name('queue.dashboard');
+//     Route::get('/queues/{queue}/tickets', [App\Http\Controllers\Agent\QueueController::class, 'getTickets'])->name('queue.tickets');
+//     Route::post('/queues/{queue}/next', [App\Http\Controllers\Agent\QueueController::class, 'callNext'])->name('queue.next');
+//     Route::post('/queues/{queue}/tickets/{ticket}/present', [App\Http\Controllers\Agent\QueueController::class, 'markPresent'])->name('queue.present');
+//     Route::post('/queues/{queue}/tickets/{ticket}/skip', [App\Http\Controllers\Agent\QueueController::class, 'skip'])->name('queue.skip');
+// });
 
 // Accessible à tous les utilisateurs authentifiés
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
@@ -53,7 +53,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 });
 
 // Les autres routes admin restent protégées
-Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
+// Routes administratives globales (nécessitent d'être admin)
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('dashboard');
@@ -100,14 +101,21 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix
     Route::post('roles/{roleSlug}/remove-permission', [\App\Http\Controllers\Admin\RoleController::class, 'removePermission'])->name('roles.remove-permission');
 
     // Routes pour la gestion des permissions des files
-    Route::get('queues/{queue}/permissions', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'index'])->name('queues.permissions');
-    Route::post('queues/{queue}/permissions/mode', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'setMode'])->name('queues.permissions.mode');
-    Route::post('queues/{queue}/permissions/add-agents', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'addSelectedAgents'])->name('queues.permissions.add-agents');
-    Route::patch('queues/{queue}/permissions/{permission}/update', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'updatePermission'])->name('queues.permissions.update');
-    Route::delete('queues/{queue}/permissions/{permission}', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'destroy'])->name('queues.permissions.destroy');
-    Route::get('queues/{queue}/users', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'queueUsers'])->name('queues.users');
+    // (déplacées en dehors du groupe admin pour permettre l'accès aux agents avec les bonnes permissions)
+    
+    // Route pour voir les files d'un utilisateur (nécessite des droits admin)
     Route::get('users/{user}/queues', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'userQueues'])->name('users.queues');
-    Route::get('queues/{queue}/search-users', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'searchUsers'])->name('queues.search-users');
 });
 
 require __DIR__.'/auth.php';
+
+// Routes pour la gestion des permissions des files (accessibles aux agents avec les bonnes permissions)
+Route::middleware(['auth', \App\Http\Middleware\CheckQueuePermission::class . ':manage'])->prefix('admin/queues')->name('admin.queues.')->group(function () {
+    Route::get('{queue}/permissions', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'index'])->name('permissions');
+    Route::post('{queue}/permissions/mode', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'setMode'])->name('permissions.mode');
+    Route::post('{queue}/permissions/add-agents', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'addSelectedAgents'])->name('permissions.add-agents');
+    Route::patch('{queue}/permissions/{permission}/update', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'updatePermission'])->name('permissions.update');
+    Route::delete('{queue}/permissions/{permission}', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'destroy'])->name('permissions.destroy');
+    Route::get('{queue}/users', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'queueUsers'])->name('users');
+    Route::get('{queue}/search-users', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'searchUsers'])->name('search-users');
+});

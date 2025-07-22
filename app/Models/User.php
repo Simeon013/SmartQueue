@@ -71,8 +71,42 @@ class User extends Authenticatable
         if (!is_string($ability) || str_contains($ability, '\\')) {
             return parent::can($ability, $arguments);
         }
+        
+        // Vérifier les permissions spécifiques aux modèles
+        if (str_contains($ability, '.') && count($arguments) > 0) {
+            $model = $arguments[0] ?? null;
+            
+            // Gestion des permissions spécifiques aux utilisateurs
+            if ($model instanceof self) {
+                return $this->canManageUser($ability, $model);
+            }
+        }
 
         return $this->getRole()->can($ability);
+    }
+    
+    /**
+     * Vérifie si l'utilisateur peut gérer un autre utilisateur
+     */
+    protected function canManageUser(string $ability, User $targetUser): bool
+    {
+        // Un utilisateur ne peut pas se gérer lui-même via ces méthodes
+        if ($this->id === $targetUser->id) {
+            return false;
+        }
+        
+        // Le super admin peut tout faire
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        
+        // Un admin ne peut gérer que les agents
+        if ($this->isAdmin()) {
+            return $targetUser->isAgent();
+        }
+        
+        // Les agents ne peuvent gérer personne
+        return false;
     }
 
     /**
@@ -102,7 +136,7 @@ class User extends Authenticatable
 
     // Méthodes de compatibilité pour les vues existantes
     // Ces méthodes retournent des collections vides car nous n'utilisons plus les rôles dynamiques
-
+    
     /**
      * Compatibilité avec l'ancien système de rôles
      */
@@ -115,7 +149,7 @@ class User extends Authenticatable
             (object)['slug' => $this->role->value]
         ]);
     }
-
+    
     /**
      * Vérifie si l'utilisateur a un rôle spécifique (compatibilité)
      */
@@ -124,28 +158,60 @@ class User extends Authenticatable
         if (is_string($role)) {
             return $this->getRole()->value === $role;
         }
-
+        
         if ($role instanceof UserRole) {
             return $this->getRole() === $role;
         }
-
+        
         return false;
-    }
-
-    /**
-     * Gestion des files d'attente accessibles par l'utilisateur
-     * À implémenter selon la logique de votre application
+    }/**
+     * Get all queues where the user has any permission.
      */
     public function accessibleQueues()
     {
-        // Les administrateurs voient toutes les files
+        // Super admins et admins voient toutes les files
         if ($this->isSuperAdmin() || $this->isAdmin()) {
             return Queue::query();
         }
-
-        // Les agents ne voient que les files qui leur sont assignées
-        // À adapter selon votre logique métier
-        return Queue::where('assigned_to', $this->id);
+        
+        // Les agents ne voient que les files où ils ont une permission
+        return Queue::whereHas('permissions', function($query) {
+            $query->where('user_id', $this->id);
+        });
+    }
+    
+    /**
+     * Check if user has any permission on the given queue.
+     */
+    public function hasAnyQueuePermission(Queue $queue): bool
+    {
+        if ($this->isAdmin() || $this->isSuperAdmin()) {
+            return true;
+        }
+        
+        return $this->queuePermissions()
+            ->where('queue_id', $queue->id)
+            ->exists();
+    }
+    
+    /**
+     * Check if user has specific permission on the given queue.
+     */
+    public function hasQueuePermission(Queue $queue, string $permissionType): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        
+        // Les admins ont tous les droits sauf s'il y a des restrictions spécifiques
+        if ($this->isAdmin()) {
+            return true;
+        }
+        
+        return $this->queuePermissions()
+            ->where('queue_id', $queue->id)
+            ->where('permission_type', $permissionType)
+            ->exists();
     }
 
     /**
@@ -191,12 +257,11 @@ class User extends Authenticatable
             'limit' => $limit,
         ];
     }
-
+    
     /**
      * Get the queue permissions for the user.
      */
     public function queuePermissions()
     {
         return $this->hasMany(QueuePermission::class);
-    }
-}
+    }}

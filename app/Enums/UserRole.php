@@ -35,10 +35,21 @@ enum UserRole: string
     /**
      * Check if the role can perform an action
      */
-    public function can(string $permission): bool
+    public function can(string $permission, ...$arguments): bool
     {
         $permissions = $this->getPermissions();
-        return in_array($permission, $permissions);
+        
+        // Vérifier si la permission existe telle quelle
+        if (in_array($permission, $permissions) || in_array('*', $permissions)) {
+            return true;
+        }
+        
+        // Vérifier si la permission est définie avec une fonction de rappel
+        if (array_key_exists($permission, $permissions) && is_callable($permissions[$permission])) {
+            return $permissions[$permission](...$arguments);
+        }
+        
+        return false;
     }
 
     /**
@@ -66,6 +77,7 @@ enum UserRole: string
                 'users.edit',
                 'users.delete',
                 'users.manage_roles',
+                'users.manage_permissions',
                 
                 // Gestion des files d'attente
                 'queues.view_all',
@@ -73,6 +85,7 @@ enum UserRole: string
                 'queues.edit',
                 'queues.delete',
                 'queues.manage',
+                'queues.permissions',
                 
                 // Paramètres
                 'settings.manage',
@@ -87,18 +100,20 @@ enum UserRole: string
                 '*',
             ],
             self::ADMIN => [
-                // Gestion des utilisateurs (limité)
-                'users.view',
-                'users.create',
-                'users.edit',
+                // Gestion des utilisateurs (limité aux agents)
+                'users.view' => fn($user) => $user->isAgent(),
+                'users.create' => fn() => true, // Peut créer des agents
+                'users.edit' => fn($user) => $user->isAgent(),
+                'users.delete' => fn($user) => $user->isAgent(),
+                'users.manage_permissions' => fn($user) => $user->isAgent(),
                 
                 // Gestion des files d'attente
                 'queues.view_all',
                 'queues.create',
                 'queues.edit',
                 'queues.manage',
-                
-                // Paramètres (limité)
+                'queues.permissions',
+                // Paramètres (lecture seule)
                 'settings.view',
                 
                 // Statistiques
@@ -106,7 +121,7 @@ enum UserRole: string
                 'reports.generate',
             ],
             self::AGENT => [
-                // Gestion des files d'attente (limité)
+                // Gestion des files d'attente (limité aux permissions explicites)
                 'queues.view_assigned',
                 'tickets.create',
                 'tickets.edit',

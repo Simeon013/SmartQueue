@@ -41,17 +41,34 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ $queue->tickets()->where('status', 'waiting')->count() }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex space-x-3">
-                                <a href="{{ route('admin.queues.show', $queue) }}" class="text-blue-600 hover:text-blue-900">Voir</a>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                            <a href="{{ route('admin.queues.show', $queue) }}" class="text-blue-600 hover:text-blue-900">Voir</a>
+                            
+                            @php
+                                $user = auth()->user();
+                                $canManage = $user->hasRole('super-admin') || 
+                                            $user->hasRole('admin') || 
+                                            $queue->userCanManage($user);
+                                $canDelete = $user->hasRole('super-admin') || 
+                                            $user->hasRole('admin') || 
+                                            $queue->userOwns($user);
+                            @endphp
+                            
+                            @if($canManage)
                                 <a href="{{ route('admin.queues.edit', $queue) }}" class="text-yellow-600 hover:text-yellow-900">Modifier</a>
-                                <a href="{{ route('admin.queues.permissions', $queue) }}" class="text-purple-600 hover:text-purple-900">Permissions</a>
+                                <a href="{{ route('admin.queues.permissions', $queue) }}" class="text-green-600 hover:text-green-900">Gérer</a>
+                            @endif
+                            
+                            @if($canDelete)
                                 <form action="{{ route('admin.queues.destroy', $queue) }}" method="POST" class="inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette file d\'attente ?')">Supprimer</button>
+                                    <button type="submit" class="text-red-600 hover:text-red-900" " 
+                                            onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette file ?')">
+                                        Supprimer
+                                    </button>
                                 </form>
-                            </div>
+                            @endif
                         </td>
                     </tr>
                 @empty

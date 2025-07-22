@@ -40,11 +40,6 @@ class QueuePermissionController extends Controller
             'mode' => 'required|in:all_agents_manager,all_agents_operator,selected_agents',
         ]);
 
-        // Vérifier que l'utilisateur peut gérer cette file
-        if (!$queue->userCanManage(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
-            abort(403, 'Vous n\'avez pas les permissions pour gérer cette file.');
-        }
-
         if ($validated['mode'] === 'all_agents_manager') {
             // Supprimer seulement les permissions individuelles non-essentielles (pas owner)
             $queue->permissions()
@@ -100,11 +95,6 @@ class QueuePermissionController extends Controller
             'permission_type' => 'required|in:manager,operator',
         ]);
 
-        // Vérifier que l'utilisateur peut gérer cette file
-        if (!$queue->userCanManage(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
-            abort(403, 'Vous n\'avez pas les permissions pour gérer cette file.');
-        }
-
         // Supprimer la permission globale si elle existe
         $queue->permissions()->whereNull('user_id')->delete();
 
@@ -139,11 +129,6 @@ class QueuePermissionController extends Controller
             'permission_type' => 'required|in:manager,operator',
         ]);
 
-        // Vérifier que l'utilisateur peut gérer cette file
-        if (!$queue->userCanManage(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
-            abort(403, 'Vous n\'avez pas les permissions pour gérer cette file.');
-        }
-
         // Empêcher de modifier le propriétaire
         if ($permission->permission_type === 'owner') {
             return redirect()->back()->with('error', 'Vous ne pouvez pas modifier le propriétaire de la file.');
@@ -168,10 +153,6 @@ class QueuePermissionController extends Controller
      */
     public function destroy(Queue $queue, QueuePermission $permission)
     {
-        // Vérifier que l'utilisateur peut gérer cette file
-        if (!$queue->userCanManage(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
-            abort(403, 'Vous n\'avez pas les permissions pour gérer cette file.');
-        }
 
         // Empêcher de supprimer le propriétaire
         if ($permission->permission_type === 'owner') {
