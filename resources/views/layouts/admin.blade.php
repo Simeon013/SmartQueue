@@ -51,31 +51,45 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 018 0v2m-4-4a4 4 0 100-8 4 4 0 000 8z"/></svg>
                         Statistiques
                     </a>
+                    @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
                     <a href="{{ route('admin.users.index') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.users.*') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         Utilisateurs
                     </a>
+                    @endif
+                    @if(auth()->user()->isSuperAdmin())
                     <a href="{{ route('admin.roles.index') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.roles.*') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Rôles
                     </a>
+                    @endif
                 </nav>
                 <!-- Paramètres en bas -->
+                @if(auth()->user()->isSuperAdmin())
                 <div class="mt-auto mb-0">
                     <a href="{{ route('admin.settings') }}" class="flex items-center gap-3 px-4 py-2 text-base font-medium text-gray-700 rounded-lg hover:bg-blue-50 {{ request()->routeIs('admin.settings*') ? 'bg-blue-900 text-white' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         Paramètres
                     </a>
                 </div>
+                @endif
+                
+                <!-- Profil utilisateur -->
                 <div class="flex items-center gap-3 px-2 mt-8">
                     @php
                         $user = Auth::user();
                         $initials = collect(explode(' ', $user->name))->map(fn($w) => strtoupper($w[0]))->join('');
+                        $roleName = $user->isSuperAdmin() ? 'Super Admin' : ($user->isAdmin() ? 'Administrateur' : 'Agent');
+                        $roleColor = $user->isSuperAdmin() ? 'bg-purple-600' : ($user->isAdmin() ? 'bg-blue-600' : 'bg-green-600');
                     @endphp
-                    <div class="flex items-center justify-center w-10 h-10 text-lg font-bold text-white bg-blue-700 rounded-full">{{ $initials }}</div>
+                    <div class="flex items-center justify-center w-10 h-10 text-lg font-bold text-white {{ $roleColor }} rounded-full">{{ $initials }}</div>
                     <div>
                         <div class="text-sm font-bold text-gray-900">{{ $user->name }}</div>
-                        <div class="text-xs text-gray-500">Admin</div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs px-2 py-0.5 rounded-full {{ $roleColor }} text-white font-medium">
+                                {{ $roleName }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -95,8 +109,13 @@
                     <!-- Dropdown menu profil -->
                     <div x-data="{ open: false }" class="relative">
                         <button @click="open = !open" @keydown.escape="open = false" type="button" class="flex items-center gap-2 focus:outline-none" :aria-expanded="open" aria-haspopup="true">
-                            <div class="flex items-center justify-center w-8 h-8 text-base font-bold text-white bg-blue-700 rounded-full">{{ $initials }}</div>
-                            <span class="font-semibold text-gray-700">{{ $user->name }}</span>
+                            <div class="flex items-center justify-center w-8 h-8 text-base font-bold text-white {{ $roleColor }} rounded-full">{{ $initials }}</div>
+                            <div class="flex flex-col items-end">
+                                <span class="font-semibold text-gray-700">{{ $user->name }}</span>
+                                <span class="text-xs px-1.5 py-0.5 rounded-full {{ $roleColor }} text-white font-medium">
+                                    {{ $roleName }}
+                                </span>
+                            </div>
                             <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                         <div x-show="open" @click.away="open = false" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95" class="absolute right-0 left-auto z-50 w-56 max-w-xs mt-2 bg-white border border-gray-200 rounded shadow-lg" style="display: none; overflow-x: hidden;">
