@@ -154,10 +154,10 @@
                             @if($this->currentTicket->status === 'called')
                                 <div class="flex flex-col space-y-2">
                                     <button wire:click="quickAction('validate')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md border border-transparent shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                        <i class="mr-2 fas fa-check"></i>CONFIRMER PRÉSENCE
+                                        <i class="mr-2 fas fa-check"></i>CONFIRMER
                                     </button>
-                                    <button wire:click="quickAction('absent')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md border border-transparent shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                        <i class="mr-2 fas fa-user-times"></i>SUIVANT
+                                    <button wire:click="quickAction('absent')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md border border-transparent shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                        <i class="mr-2 fas fa-user-times"></i>ABSENT
                                     </button>
                                     {{-- <button wire:click="quickAction('recall')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                         <i class="mr-2 fas fa-undo"></i>Remettre en attente

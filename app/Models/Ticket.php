@@ -33,6 +33,11 @@ class Ticket extends Model
         return $this->belongsTo(Queue::class);
     }
 
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
+
     public function getPositionAttribute()
     {
         if (!in_array($this->status, ['waiting', 'paused'])) {
