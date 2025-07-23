@@ -54,7 +54,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
 // Les autres routes admin restent protégées
 // Routes administratives globales (nécessitent d'être admin)
-Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('dashboard');
@@ -110,7 +110,14 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix
 require __DIR__.'/auth.php';
 
 // Routes pour la gestion des permissions des files (accessibles aux agents avec les bonnes permissions)
+// Routes pour les actions rapides sur les files d'attente
 Route::middleware(['auth', \App\Http\Middleware\CheckQueuePermission::class . ':manage'])->prefix('admin/queues')->name('admin.queues.')->group(function () {
+    // Actions rapides
+    Route::patch('{queue}/toggle-status', [\App\Http\Controllers\Admin\QueueController::class, 'toggleStatus'])->name('toggle-status');
+    Route::patch('{queue}/toggle-pause', [\App\Http\Controllers\Admin\QueueController::class, 'togglePause'])->name('toggle-pause');
+    Route::patch('{queue}/close', [\App\Http\Controllers\Admin\QueueController::class, 'close'])->name('close');
+    
+    // Gestion des permissions
     Route::get('{queue}/permissions', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'index'])->name('permissions');
     Route::post('{queue}/permissions/mode', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'setMode'])->name('permissions.mode');
     Route::post('{queue}/permissions/add-agents', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'addSelectedAgents'])->name('permissions.add-agents');
@@ -118,4 +125,6 @@ Route::middleware(['auth', \App\Http\Middleware\CheckQueuePermission::class . ':
     Route::delete('{queue}/permissions/{permission}', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'destroy'])->name('permissions.destroy');
     Route::get('{queue}/users', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'queueUsers'])->name('users');
     Route::get('{queue}/search-users', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'searchUsers'])->name('search-users');
+    Route::delete('{queue}/permissions', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'clearAll'])->name('permissions.clear');
+    Route::post('{queue}/permissions/add-all-agents', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'addAllAgents'])->name('permissions.add-all-agents');
 });

@@ -134,12 +134,12 @@ class QueueController extends Controller
     protected function userCanManageQueue(User $user, Queue $queue = null): bool
     {
         // Les super admins peuvent tout faire
-        if ($user->hasRole('super_admin')) {
+        if ($user->isSuperAdmin()) {
             return true;
         }
         
         // Les admins peuvent gérer toutes les files
-        if ($user->hasRole('admin')) {
+        if ($user->isAdmin()) {
             return true;
         }
         
@@ -305,7 +305,7 @@ class QueueController extends Controller
     public function addTicket(Request $request, Queue $queue)
     {
         // Vérifier les permissions pour ajouter des tickets à cette file d'attente
-        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->isSuperAdmin()) {
             abort(403, 'Vous n\'avez pas la permission d\'ajouter des tickets à cette file d\'attente.');
         }
 
@@ -325,7 +325,7 @@ class QueueController extends Controller
     public function destroyTicket(Queue $queue, Ticket $ticket)
     {
         // Vérifier les permissions pour supprimer des tickets de cette file d'attente
-        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->isSuperAdmin()) {
             abort(403, 'Vous n\'avez pas la permission de supprimer des tickets de cette file d\'attente.');
         }
 
@@ -342,7 +342,7 @@ class QueueController extends Controller
     public function updateTicketStatus(Request $request, Queue $queue, Ticket $ticket)
     {
         // Vérifier les permissions pour gérer les tickets de cette file d'attente
-        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->isSuperAdmin()) {
             abort(403, 'Vous n\'avez pas la permission de gérer les tickets de cette file d\'attente.');
         }
 
@@ -365,7 +365,7 @@ class QueueController extends Controller
     public function updateTicket(Request $request, Queue $queue, Ticket $ticket)
     {
         // Vérifier les permissions pour gérer les tickets de cette file d'attente
-        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->hasRole('super-admin')) {
+        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->isSuperAdmin()) {
             abort(403, 'Vous n\'avez pas la permission de gérer les tickets de cette file d\'attente.');
         }
 
@@ -379,5 +379,96 @@ class QueueController extends Controller
 
         return redirect()->route('admin.queues.show', $queue)
             ->with('success', 'Ticket mis à jour avec succès.');
+    }
+
+    /**
+     * Bascule le statut actif/désactivé d'une file d'attente
+     *
+     * @param  \App\Models\Queue  $queue
+     * @return \Illuminate\Http\Response
+     */
+    public function toggleStatus(Queue $queue)
+    {
+        $user = auth()->user();
+        
+        // Vérifier les permissions
+        if (!$this->userCanManageQueue($user, $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de modifier cette file d\'attente.');
+        }
+
+        // Inverser le statut actif
+        $queue->update(['is_active' => !$queue->is_active]);
+
+        // Si on désactive la file, on la met aussi hors pause
+        if (!$queue->is_active) {
+            $queue->update(['is_paused' => false]);
+        }
+
+        $status = $queue->is_active ? 'activée' : 'désactivée';
+        return redirect()->back()
+            ->with('success', "La file a été {$status} avec succès.");
+    }
+
+    /**
+     * Bascule l'état de pause d'une file d'attente
+     *
+     * @param  \App\Models\Queue  $queue
+     * @return \Illuminate\Http\Response
+     */
+    public function togglePause(Queue $queue)
+    {
+        $user = auth()->user();
+        
+        // Vérifier les permissions
+        if (!$this->userCanManageQueue($user, $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de modifier cette file d\'attente.');
+        }
+
+        // Si la file n'est pas active, on ne peut pas la mettre en pause
+        if (!$queue->is_active) {
+            return redirect()->back()
+                ->with('error', 'Impossible de mettre en pause une file désactivée.');
+        }
+
+        // Inverser l'état de pause
+        $queue->update(['is_paused' => !$queue->is_paused]);
+
+        $status = $queue->is_paused ? 'mise en pause' : 'reprise';
+        return redirect()->back()
+            ->with('success', "La file a été {$status} avec succès.");
+    }
+
+    /**
+     * Ferme une file d'attente et annule les tickets en attente
+     *
+     * @param  \App\Models\Queue  $queue
+     * @return \Illuminate\Http\Response
+     */
+    public function close(Queue $queue)
+    {
+        $user = auth()->user();
+        
+        // Vérifier les permissions
+        if (!$this->userCanManageQueue($user, $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de fermer cette file d\'attente.');
+        }
+
+        // Désactiver la file
+        $queue->update([
+            'is_active' => false,
+            'is_paused' => false
+        ]);
+
+        // Annuler les tickets en attente
+        $queue->tickets()
+            ->whereIn('status', ['waiting', 'called'])
+            ->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancelled_by' => $user->id
+            ]);
+
+        return redirect()->back()
+            ->with('success', 'La file a été fermée avec succès. Les tickets en attente ont été annulés.');
     }
 }
