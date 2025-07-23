@@ -98,7 +98,18 @@ class QueueController extends Controller
         
         $queues = $query->paginate(10)->withQueryString();
         
-        return view('admin.queues.index', compact('queues'));
+        // Statistiques pour le récapitulatif
+        $stats = [
+            'total_queues' => Queue::count(),
+            'active_queues' => Queue::where('is_active', true)->count(),
+            'total_pending_tickets' => Ticket::where('status', 'waiting')->count(),
+            'latest_queue' => Queue::with('creator')->latest()->first()
+        ];
+        
+        return view('admin.queues.index', [
+            'queues' => $queues,
+            'stats' => $stats
+        ]);
     }
 
     /**
