@@ -16,31 +16,87 @@ use Illuminate\Support\Str;
 
 class QueueController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         
-        // Super admin et admin voient toutes les files
+        // Initialisation de la requête
+        $query = Queue::with(['establishment', 'permissions']);
+        
+        // Filtres communs à tous les utilisateurs
+        if ($request->filled('name')) {
+            $searchTerm = '%' . $request->name . '%';
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('queues.name', 'like', $searchTerm)
+                  ->orWhereHas('creator', function($q) use ($searchTerm) {
+                      $q->where('name', 'like', $searchTerm);
+                  });
+            });
+        }
+        
+        if ($request->has('status') && in_array($request->status, ['0', '1'])) {
+            $query->where('is_active', (bool)$request->status);
+        }
+        
+        // Compter les tickets en attente pour chaque file
+        $query->withCount(['tickets' => function($q) {
+            $q->where('status', 'waiting');
+        }]);
+        
+        // Filtrage spécifique aux administrateurs
         if ($user->isSuperAdmin() || $user->isAdmin()) {
-            $queues = Queue::with('establishment')
-                         ->latest()
-                         ->paginate(10);
+            // Les administrateurs voient toutes les files, pas de restriction supplémentaire
         } 
-        // Les agents ne voient que les files pour lesquelles ils ont une permission
+        // Filtrage spécifique aux agents
         else {
-            $accessibleQueueIds = $user->queuePermissions()->pluck('queue_id');
-            
-            $queues = Queue::with('establishment')
-                         ->whereIn('id', $accessibleQueueIds)
-                         ->latest()
-                         ->paginate(10);
+            $accessibleQueueIds = $user->queuePermissions()
+                ->when($request->filled('permission'), function($q) use ($request) {
+                    if ($request->permission === 'manage') {
+                        // Les gestionnaires peuvent être des owners ou des managers
+                        $q->whereIn('permission_type', ['owner', 'manager']);
+                    } elseif ($request->permission === 'view') {
+                        // Les opérateurs ont uniquement un accès en lecture
+                        $q->where('permission_type', 'operator');
+                    }
+                    return $q;
+                })
+                ->pluck('queue_id');
             
             // Si l'agent n'a accès à aucune file, on le redirige avec un message
             if ($accessibleQueueIds->isEmpty()) {
                 return redirect()->route('admin.dashboard')
                                ->with('info', 'Vous n\'avez accès à aucune file d\'attente pour le moment.');
             }
+            
+            $query->whereIn('id', $accessibleQueueIds);
         }
+        
+        // Gestion du tri
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+        
+        switch ($sort) {
+            case 'name':
+                $query->orderBy('name', $direction);
+                break;
+            case 'is_active':
+                $query->orderBy('is_active', $direction === 'asc' ? 'desc' : 'asc');
+                break;
+            case 'tickets_count':
+                $query->orderBy('tickets_count', $direction);
+                break;
+            case 'creator_name':
+                $query->leftJoin('users', 'queues.created_by', '=', 'users.id')
+                      ->orderBy('users.name', $direction)
+                      ->select('queues.*');
+                break;
+            case 'created_at':
+            default:
+                $query->orderBy('created_at', $direction);
+                break;
+        }
+        
+        $queues = $query->paginate(10)->withQueryString();
         
         return view('admin.queues.index', compact('queues'));
     }
@@ -110,6 +166,7 @@ class QueueController extends Controller
         $validated['code'] = \Illuminate\Support\Str::random(6);
         $validated['is_active'] = $request->has('is_active');
         $validated['establishment_id'] = \App\Models\Establishment::first()->id;
+        $validated['created_by'] = $user->id; // Définir l'utilisateur actuel comme créateur
 
         // Créer la file
         $queue = Queue::create($validated);

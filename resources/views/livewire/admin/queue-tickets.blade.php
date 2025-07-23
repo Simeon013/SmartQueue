@@ -32,7 +32,7 @@
                     <div class="text-sm text-gray-500">TEMPS MOYEN D'ATTENTE</div>
                     <div class="text-2xl font-bold">{{ $stats['average_wait_time'] ? round($stats['average_wait_time']/60, 1) . ' min' : 'N/A' }}</div>
                 </div>
-                <a href="{{ route('admin.queues.tickets.history', $queue) }}" class="flex flex-col items-center p-6 transition bg-white rounded-lg shadow hover:bg-gray-50">
+                <a href="{{ route('admin.queues.tickets.history', $queue) }}" class="flex flex-col items-center p-6 bg-white rounded-lg shadow transition hover:bg-gray-50">
                     <div class="mb-2 text-3xl text-purple-600"><i class="fas fa-history"></i></div>
                     <div class="text-sm text-gray-500">TICKETS TRAITÉS</div>
                     <div class="text-2xl font-bold">{{ $stats['processed_tickets']['total'] }}</div>
@@ -60,31 +60,31 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
                         <label for="ticketName" class="block text-sm font-medium text-gray-700">Nom</label>
-                        <input type="text" wire:model="ticketName" id="ticketName" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input type="text" wire:model="ticketName" id="ticketName" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         @error('ticketName') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
                         <label for="ticketEmail" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" wire:model="ticketEmail" id="ticketEmail" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input type="email" wire:model="ticketEmail" id="ticketEmail" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         @error('ticketEmail') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
                         <label for="ticketPhone" class="block text-sm font-medium text-gray-700">Téléphone</label>
-                        <input type="tel" wire:model="ticketPhone" id="ticketPhone" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input type="tel" wire:model="ticketPhone" id="ticketPhone" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         @error('ticketPhone') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
                         <label for="ticketNotes" class="block text-sm font-medium text-gray-700">Notes</label>
-                        <textarea wire:model="ticketNotes" id="ticketNotes" rows="1" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                        <textarea wire:model="ticketNotes" id="ticketNotes" rows="1" class="block mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
                         @error('ticketNotes') <span class="text-xs text-red-500">{{ $message }}</span> @enderror
                     </div>
                 </div>
 
                 <div class="flex justify-end mt-4">
-                    <button type="submit" class="inline-flex items-center px-4 py-2 font-semibold text-white transition bg-blue-700 rounded-lg shadow hover:bg-blue-800">
+                    <button type="submit" class="inline-flex items-center px-4 py-2 font-semibold text-white bg-blue-700 rounded-lg shadow transition hover:bg-blue-800">
                         <i class="mr-2 fas fa-plus"></i> Créer le ticket
                     </button>
                 </div>
@@ -96,13 +96,13 @@
             <h2 class="mb-4 text-lg font-semibold text-gray-900">Paramètres de File</h2>
             {{-- Trois boutons horizontals : OUVRIR LA FILE, FERMER LA FILE, ET METTRE EN PAUSE --}}
             <div class="flex flex-row justify-center space-x-4">
-                <button wire:click="openQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                <button wire:click="openQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md border border-transparent shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                     <i class="mr-2 fas fa-play"></i> OUVRIR LA FILE
                 </button>
-                <button wire:click="closeQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                <button wire:click="closeQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md border border-transparent shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     <i class="mr-2 fas fa-stop"></i> FERMER LA FILE
                 </button>
-                <button wire:click="pauseQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-700 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <button wire:click="pauseQueue" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-700 rounded-md border border-transparent shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     <i class="mr-2 fas fa-pause"></i> METTRE EN PAUSE
                 </button>
             </div>
@@ -113,8 +113,8 @@
             <h2 class="mb-4 text-lg font-semibold text-gray-900">Ticket en cours</h2>
 
             @if($this->currentTicket)
-                <div class="p-4 mb-4 rounded-lg bg-gray-50">
-                    <div class="flex items-center justify-between">
+                <div class="p-4 mb-4 bg-gray-50 rounded-lg">
+                    <div class="flex justify-between items-center">
                         <div>
                             <div class="flex items-center space-x-3">
                                 <span class="text-2xl font-bold text-indigo-600">{{ $this->currentTicket->code_ticket }}</span>
@@ -147,19 +147,19 @@
                             </div>
 
                             @if($this->currentTicket->status === 'waiting')
-                                <button wire:click="quickAction('call')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <button wire:click="quickAction('call')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md border border-transparent shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                     <i class="mr-2 fas fa-bell"></i>SUIVANT
                                 </button>
                             @endif
                             @if($this->currentTicket->status === 'called')
                                 <div class="flex flex-col space-y-2">
-                                    <button wire:click="quickAction('validate')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <button wire:click="quickAction('validate')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md border border-transparent shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                         <i class="mr-2 fas fa-check"></i>CONFIRMER PRÉSENCE
                                     </button>
-                                    <button wire:click="quickAction('absent')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <button wire:click="quickAction('absent')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md border border-transparent shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                         <i class="mr-2 fas fa-user-times"></i>SUIVANT
                                     </button>
-                                    {{-- <button wire:click="quickAction('recall')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    {{-- <button wire:click="quickAction('recall')" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-md border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                         <i class="mr-2 fas fa-undo"></i>Remettre en attente
                                     </button> --}}
                                 </div>
@@ -225,10 +225,10 @@
                         </td>
                         {{-- <td class="px-4 py-2 text-xs">
                             @if($ticket->email)
-                                <div class="flex items-center gap-1"><i class="text-blue-500 fas fa-envelope"></i> {{ $ticket->email }}</div>
+                                <div class="flex gap-1 items-center"><i class="text-blue-500 fas fa-envelope"></i> {{ $ticket->email }}</div>
                             @endif
                             @if($ticket->phone)
-                                <div class="flex items-center gap-1"><i class="text-green-500 fas fa-phone"></i> {{ $ticket->phone }}</div>
+                                <div class="flex gap-1 items-center"><i class="text-green-500 fas fa-phone"></i> {{ $ticket->phone }}</div>
                             @endif
                         </td> --}}
                         <td class="px-4 py-2 text-xs text-gray-500">{{ $ticket->created_at->format('d/m/Y H:i') }}</td>

@@ -12,8 +12,11 @@ class Queue extends Model
     protected $fillable = [
         'name',
         'establishment_id',
-        'is_active'
+        'is_active',
+        'created_by'
     ];
+    
+    protected $with = ['creator'];
 
     protected $casts = [
         'is_active' => 'boolean',
@@ -47,6 +50,11 @@ class Queue extends Model
         return $this->tickets()->whereIn('status', ['waiting', 'called']);
     }
 
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+    
     public function establishment()
     {
         return $this->belongsTo(Establishment::class);
