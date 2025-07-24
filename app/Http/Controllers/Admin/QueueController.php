@@ -302,6 +302,7 @@ class QueueController extends Controller
             ->with('success', 'File d\'attente supprimée avec succès.');
     }
 
+
     public function addTicket(Request $request, Queue $queue)
     {
         // Vérifier les permissions pour ajouter des tickets à cette file d'attente

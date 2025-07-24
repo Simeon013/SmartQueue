@@ -17,6 +17,10 @@ class QueueTickets extends Component
     public $ticketEmail = '';
     public $ticketPhone = '';
     public $ticketNotes = '';
+    
+    // Propriétés pour le tri
+    public $sortField = 'created_at';
+    public $sortDirection = 'asc';
 
     protected $rules = [
         'ticketName' => 'required|min:3',
@@ -233,18 +237,34 @@ class QueueTickets extends Component
         }
     }
 
+    // Méthode pour trier les colonnes
+    public function sortBy($field)
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortDirection = 'asc';
+        }
+        $this->sortField = $field;
+    }
+    
     public function render()
     {
+        $query = $this->queue->tickets()
+            ->whereIn('status', ['waiting', 'called']);
+            
+        // Appliquer le tri
+        if ($this->sortField === 'status') {
+            $query->orderByRaw("CASE 
+                WHEN status = 'waiting' THEN 1 
+                WHEN status = 'called' THEN 2
+            END", $this->sortDirection);
+        } else {
+            $query->orderBy($this->sortField, $this->sortDirection);
+        }
+            
         return view('livewire.admin.queue-tickets', [
-            'tickets' => $this->queue->tickets()
-                ->whereIn('status', ['waiting', 'called'])
-                ->orderByRaw("CASE
-                    WHEN status = 'waiting' THEN 1
-                    WHEN status = 'called' THEN 2
-                    ELSE 3
-                END")
-                ->orderBy('created_at', 'asc')
-                ->paginate(10),
+            'tickets' => $query->paginate(10),
             'stats' => $this->stats,
         ]);
     }

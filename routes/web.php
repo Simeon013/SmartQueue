@@ -18,6 +18,9 @@ Route::post('/find-queue', [App\Http\Controllers\Public\QueueController::class, 
 // Routes d'affichage des files d'attente
 // Mettre la route par code avant la route par ID
 Route::get('/q/{code}', [App\Http\Controllers\Public\QueueController::class, 'showByCode'])->name('public.queue.show.code');
+
+// Route pour l'affichage du QR code
+Route::get('/qrcode/{code}', [App\Http\Controllers\Public\QrCodeController::class, 'show'])->name('public.qrcode.show');
 Route::get('/q/{queue}', [App\Http\Controllers\Public\QueueController::class, 'show'])->name('public.queue.show');
 
 Route::get('/q/{queue_code}/ticket/{ticket_code}', [App\Http\Controllers\Public\QueueController::class, 'ticketStatus'])->name('public.ticket.status');
@@ -112,6 +115,9 @@ require __DIR__.'/auth.php';
 // Routes pour la gestion des permissions des files (accessibles aux agents avec les bonnes permissions)
 // Routes pour les actions rapides sur les files d'attente
 Route::middleware(['auth', \App\Http\Middleware\CheckQueuePermission::class . ':manage'])->prefix('admin/queues')->name('admin.queues.')->group(function () {
+    // Affichage du QR code en grand format
+    Route::get('{queue}/qrcode', [\App\Http\Controllers\Admin\QueueController::class, 'showQrCode'])->name('qrcode');
+    
     // Actions rapides
     Route::patch('{queue}/toggle-status', [\App\Http\Controllers\Admin\QueueController::class, 'toggleStatus'])->name('toggle-status');
     Route::patch('{queue}/toggle-pause', [\App\Http\Controllers\Admin\QueueController::class, 'togglePause'])->name('toggle-pause');
