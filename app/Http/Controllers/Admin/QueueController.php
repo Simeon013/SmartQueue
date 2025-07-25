@@ -49,25 +49,51 @@ class QueueController extends Controller
         } 
         // Filtrage spécifique aux agents
         else {
-            $accessibleQueueIds = $user->queuePermissions()
-                ->when($request->filled('permission'), function($q) use ($request) {
+            // Récupérer les IDs des files accessibles en fonction des permissions
+            $accessibleQueueIds = $user->getAccessibleQueueIds();
+            
+            // Si un filtre de permission est spécifié, on l'applique
+            if ($request->filled('permission')) {
+                $filteredQueueIds = [];
+                
+                // Récupérer les permissions spécifiques
+                $permissionsQuery = $user->queuePermissions()
+                    ->whereIn('queue_id', $accessibleQueueIds);
+                
+                if ($request->permission === 'manage') {
+                    $permissionsQuery->whereIn('permission_type', ['owner', 'manager']);
+                } elseif ($request->permission === 'view') {
+                    $permissionsQuery->where('permission_type', 'operator');
+                }
+                
+                $specificPermissions = $permissionsQuery->pluck('queue_id')->toArray();
+                
+                // Récupérer les permissions globales si nécessaire
+                $globalPermissions = [];
+                if (empty($specificPermissions) || $request->permission === 'view') {
+                    $globalQuery = DB::table('queue_permissions')
+                        ->whereNull('user_id')
+                        ->whereIn('queue_id', $accessibleQueueIds);
+                    
                     if ($request->permission === 'manage') {
-                        // Les gestionnaires peuvent être des owners ou des managers
-                        $q->whereIn('permission_type', ['owner', 'manager']);
+                        $globalQuery->whereIn('permission_type', ['owner', 'manager']);
                     } elseif ($request->permission === 'view') {
-                        // Les opérateurs ont uniquement un accès en lecture
-                        $q->where('permission_type', 'operator');
+                        $globalQuery->where('permission_type', 'operator');
                     }
-                    return $q;
-                })
-                ->pluck('queue_id');
+                    
+                    $globalPermissions = $globalQuery->pluck('queue_id')->toArray();
+                }
+                
+                // Fusionner les permissions spécifiques et globales
+                $filteredQueueIds = array_unique(array_merge($specificPermissions, $globalPermissions));
+                
+                // Si on a des permissions filtrées, on les utilise
+                if (!empty($filteredQueueIds)) {
+                    $accessibleQueueIds = $filteredQueueIds;
+                }
+            }
             
-            // Si l'agent n'a accès à aucune file, on le redirige avec un message
-            // if ($accessibleQueueIds->isEmpty()) {
-            //     return redirect()->route('admin.dashboard')
-            //                    ->with('info', 'Vous n\'avez accès à aucune file d\'attente pour le moment.');
-            // }
-            
+            // Appliquer le filtre sur les IDs accessibles
             $query->whereIn('id', $accessibleQueueIds);
         }
         
@@ -114,6 +140,7 @@ class QueueController extends Controller
 
     /**
      * Vérifie si un utilisateur peut accéder à une file d'attente
+     * Prend en compte les permissions globales (user_id = null) et spécifiques
      */
     protected function userCanAccessQueue(User $user, Queue $queue): bool
     {
@@ -122,7 +149,17 @@ class QueueController extends Controller
             return true;
         }
         
-        // Vérifier si l'utilisateur a une permission explicite pour cette file
+        // Vérifier les permissions globales (user_id = null)
+        $hasGlobalPermission = DB::table('queue_permissions')
+            ->where('queue_id', $queue->id)
+            ->whereNull('user_id')
+            ->exists();
+            
+        if ($hasGlobalPermission) {
+            return true;
+        }
+        
+        // Vérifier les permissions spécifiques à l'utilisateur
         return $user->queuePermissions()
             ->where('queue_id', $queue->id)
             ->exists();

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserRole;
+use Illuminate\Support\Facades\DB;
 use App\Models\QueuePermission;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -164,8 +165,11 @@ class User extends Authenticatable
         }
         
         return false;
-    }/**
+    }
+
+    /**
      * Get all queues where the user has any permission.
+     * Inclut les files avec permissions spécifiques et globales.
      */
     public function accessibleQueues()
     {
@@ -174,10 +178,16 @@ class User extends Authenticatable
             return Queue::query();
         }
         
-        // Les agents ne voient que les files où ils ont une permission
-        return Queue::whereHas('permissions', function($query) {
-            $query->where('user_id', $this->id);
-        });
+        // Récupérer les IDs des files accessibles
+        $queueIds = $this->getAccessibleQueueIds();
+        
+        // Si l'utilisateur n'a aucune permission, retourner une requête vide
+        if (empty($queueIds)) {
+            return Queue::where('id', 0); // Retourne une requête vide
+        }
+        
+        // Retourner les files correspondant aux IDs accessibles
+        return Queue::whereIn('id', $queueIds);
     }
     
     /**
@@ -196,18 +206,26 @@ class User extends Authenticatable
     
     /**
      * Check if user has specific permission on the given queue.
+     * Vérifie à la fois les permissions spécifiques et les permissions globales.
      */
     public function hasQueuePermission(Queue $queue, string $permissionType): bool
     {
-        if ($this->isSuperAdmin()) {
+        if ($this->isSuperAdmin() || $this->isAdmin()) {
             return true;
         }
         
-        // Les admins ont tous les droits sauf s'il y a des restrictions spécifiques
-        if ($this->isAdmin()) {
+        // Vérifier les permissions globales (user_id = null)
+        $globalPermission = DB::table('queue_permissions')
+            ->where('queue_id', $queue->id)
+            ->whereNull('user_id')
+            ->where('permission_type', $permissionType)
+            ->exists();
+            
+        if ($globalPermission) {
             return true;
         }
         
+        // Vérifier les permissions spécifiques à l'utilisateur
         return $this->queuePermissions()
             ->where('queue_id', $queue->id)
             ->where('permission_type', $permissionType)
@@ -223,8 +241,17 @@ class User extends Authenticatable
         if ($this->isSuperAdmin() || $this->isAdmin()) {
             return \App\Models\Queue::pluck('id')->toArray();
         }
-        // Agents : files où il a une permission (via queue_permissions)
-        return $this->queuePermissions()->pluck('queue_id')->toArray();
+        
+        // Récupérer les IDs des files avec permissions spécifiques
+        $specificQueueIds = $this->queuePermissions()->pluck('queue_id')->toArray();
+        
+        // Récupérer les IDs des files avec permissions globales (user_id = null)
+        $globalQueueIds = \App\Models\QueuePermission::whereNull('user_id')
+            ->pluck('queue_id')
+            ->toArray();
+        
+        // Fusionner et supprimer les doublons
+        return array_unique(array_merge($specificQueueIds, $globalQueueIds));
     }
 
     /**
@@ -260,6 +287,8 @@ class User extends Authenticatable
     
     /**
      * Get the queue permissions for the user.
+     * Retourne uniquement les permissions spécifiques à l'utilisateur.
+     * Les permissions globales sont gérées séparément.
      */
     public function queuePermissions()
     {
