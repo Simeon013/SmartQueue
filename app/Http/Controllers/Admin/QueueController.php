@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Spatie\Activitylog\Facades\Activity;
 use App\Models\Queue;
 use App\Models\QueueEvent;
 use App\Models\QueuePermission;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Establishment;
+use App\Enums\QueueStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class QueueController extends Controller
@@ -19,10 +22,10 @@ class QueueController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
+
         // Initialisation de la requête
         $query = Queue::with(['establishment', 'permissions']);
-        
+
         // Filtres communs à tous les utilisateurs
         if ($request->filled('name')) {
             $searchTerm = '%' . $request->name . '%';
@@ -33,80 +36,86 @@ class QueueController extends Controller
                   });
             });
         }
-        
-        if ($request->has('status') && in_array($request->status, ['0', '1'])) {
-            $query->where('is_active', (bool)$request->status);
+
+        // Filtre par statut
+        if ($request->has('status')) {
+            if (in_array($request->status, ['0', '1'])) {
+                // Rétrocompatibilité avec les anciens appels utilisant 0/1
+                $query->where('status', $request->status === '1' ? 'open' : 'closed');
+            } elseif (in_array($request->status, ['open', 'paused', 'blocked', 'closed'])) {
+                $query->where('status', $request->status);
+            }
         }
-        
+
         // Compter les tickets en attente pour chaque file
         $query->withCount(['tickets' => function($q) {
             $q->where('status', 'waiting');
         }]);
-        
+
         // Filtrage spécifique aux administrateurs
         if ($user->isSuperAdmin() || $user->isAdmin()) {
             // Les administrateurs voient toutes les files, pas de restriction supplémentaire
-        } 
+        }
         // Filtrage spécifique aux agents
         else {
             // Récupérer les IDs des files accessibles en fonction des permissions
             $accessibleQueueIds = $user->getAccessibleQueueIds();
-            
+
             // Si un filtre de permission est spécifié, on l'applique
             if ($request->filled('permission')) {
                 $filteredQueueIds = [];
-                
+
                 // Récupérer les permissions spécifiques
                 $permissionsQuery = $user->queuePermissions()
                     ->whereIn('queue_id', $accessibleQueueIds);
-                
+
                 if ($request->permission === 'manage') {
                     $permissionsQuery->whereIn('permission_type', ['owner', 'manager']);
                 } elseif ($request->permission === 'view') {
                     $permissionsQuery->where('permission_type', 'operator');
                 }
-                
+
                 $specificPermissions = $permissionsQuery->pluck('queue_id')->toArray();
-                
+
                 // Récupérer les permissions globales si nécessaire
                 $globalPermissions = [];
                 if (empty($specificPermissions) || $request->permission === 'view') {
                     $globalQuery = DB::table('queue_permissions')
                         ->whereNull('user_id')
                         ->whereIn('queue_id', $accessibleQueueIds);
-                    
+
                     if ($request->permission === 'manage') {
                         $globalQuery->whereIn('permission_type', ['owner', 'manager']);
                     } elseif ($request->permission === 'view') {
                         $globalQuery->where('permission_type', 'operator');
                     }
-                    
+
                     $globalPermissions = $globalQuery->pluck('queue_id')->toArray();
                 }
-                
+
                 // Fusionner les permissions spécifiques et globales
                 $filteredQueueIds = array_unique(array_merge($specificPermissions, $globalPermissions));
-                
+
                 // Si on a des permissions filtrées, on les utilise
                 if (!empty($filteredQueueIds)) {
                     $accessibleQueueIds = $filteredQueueIds;
                 }
             }
-            
+
             // Appliquer le filtre sur les IDs accessibles
             $query->whereIn('id', $accessibleQueueIds);
         }
-        
+
         // Gestion du tri
         $sort = $request->input('sort', 'created_at');
         $direction = $request->input('direction', 'desc');
-        
+
         switch ($sort) {
             case 'name':
                 $query->orderBy('name', $direction);
                 break;
-            case 'is_active':
-                $query->orderBy('is_active', $direction === 'asc' ? 'desc' : 'asc');
+            case 'status':
+                $query->orderBy('status', $direction);
                 break;
             case 'tickets_count':
                 $query->orderBy('tickets_count', $direction);
@@ -121,17 +130,17 @@ class QueueController extends Controller
                 $query->orderBy('created_at', $direction);
                 break;
         }
-        
+
         $queues = $query->paginate(10)->withQueryString();
-        
+
         // Statistiques pour le récapitulatif
         $stats = [
             'total_queues' => Queue::count(),
-            'active_queues' => Queue::where('is_active', true)->count(),
+            'active_queues' => Queue::where('status', 'open')->count(),
             'total_pending_tickets' => Ticket::where('status', 'waiting')->count(),
             'latest_queue' => Queue::with('creator')->latest()->first()
         ];
-        
+
         return view('admin.queues.index', [
             'queues' => $queues,
             'stats' => $stats
@@ -148,23 +157,23 @@ class QueueController extends Controller
         if ($user->isSuperAdmin() || $user->isAdmin()) {
             return true;
         }
-        
+
         // Vérifier les permissions globales (user_id = null)
         $hasGlobalPermission = DB::table('queue_permissions')
             ->where('queue_id', $queue->id)
             ->whereNull('user_id')
             ->exists();
-            
+
         if ($hasGlobalPermission) {
             return true;
         }
-        
+
         // Vérifier les permissions spécifiques à l'utilisateur
         return $user->queuePermissions()
             ->where('queue_id', $queue->id)
             ->exists();
     }
-    
+
     /**
      * Vérifie si un utilisateur peut gérer une file d'attente (créer/modifier/supprimer)
      */
@@ -174,25 +183,25 @@ class QueueController extends Controller
         if ($user->isSuperAdmin()) {
             return true;
         }
-        
+
         // Les admins peuvent gérer toutes les files
         if ($user->isAdmin()) {
             return true;
         }
-        
+
         // Pour la création, vérifier si l'utilisateur est connecté
         if (!$queue) {
             return $user->exists;
         }
-        
+
         // Vérifier les permissions spécifiques pour cette file
         return $queue->userCanManage($user);
     }
-    
+
     public function create()
     {
         // $user = Auth::user();
-        
+
         // // N'importe quel utilisateur connecté peut créer une file
         // if (!$user) {
         //     abort(403, 'Vous devez être connecté pour créer une file d\'attente.');
@@ -205,20 +214,21 @@ class QueueController extends Controller
     public function store(Request $request)
     {
         $user = auth()->user();
-        
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             // 'establishment_id' => 'required|exists:establishments,id',
-            'is_active' => 'boolean',
+            // Le statut est forcé à 'open' à la création
         ]);
+
         $validated['code'] = \Illuminate\Support\Str::random(6);
-        $validated['is_active'] = $request->has('is_active');
+        $validated['status'] = QueueStatus::OPEN->value; // Toujours 'open' à la création
         $validated['establishment_id'] = \App\Models\Establishment::first()->id;
         $validated['created_by'] = $user->id; // Définir l'utilisateur actuel comme créateur
 
         // Créer la file
         $queue = Queue::create($validated);
-        
+
         // Donner les droits de propriétaire à l'utilisateur qui a créé la file
         if ($user) {
             $queue->grantPermissionTo($user, 'owner');
@@ -240,7 +250,7 @@ class QueueController extends Controller
     public function show(Queue $queue)
     {
         $user = auth()->user();
-        
+
         // Vérifier les permissions pour voir cette file d'attente spécifique
         if (!$this->userCanAccessQueue($user, $queue)) {
             abort(403, 'Vous n\'avez pas la permission d\'accéder à cette file d\'attente.');
@@ -250,7 +260,7 @@ class QueueController extends Controller
         $queue->load([
             'tickets' => function ($query) {
                 $query->latest()->limit(50);
-            }, 
+            },
             'events' => function ($query) {
                 $query->latest()->limit(50);
             },
@@ -272,7 +282,7 @@ class QueueController extends Controller
             ->with('user')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
-            
+
         // Vérifier les permissions de l'utilisateur actuel
         $canManageQueue = $user->can('queues.manage') || $user->isAdmin() || $user->isSuperAdmin();
         $canEditQueue = $user->can('queues.edit') || $user->isAdmin() || $user->isSuperAdmin();
@@ -291,7 +301,7 @@ class QueueController extends Controller
     public function edit(Queue $queue)
     {
         $user = auth()->user();
-        
+
         // Vérifier les permissions
         if (!$this->userCanManageQueue($user, $queue)) {
             abort(403, 'Vous n\'avez pas la permission de modifier cette file d\'attente.');
@@ -303,31 +313,87 @@ class QueueController extends Controller
 
     public function update(Request $request, \App\Models\Queue $queue)
     {
+        $user = auth()->user();
+
         // Vérifier les permissions pour modifier cette file d'attente
-        if (!$this->userCanManageQueue(auth()->user(), $queue)) {
+        if (!$this->userCanManageQueue($user, $queue)) {
             abort(403, 'Vous n\'avez pas la permission de modifier cette file d\'attente.');
         }
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            // 'establishment_id' => 'required|exists:establishments,id',
-            'is_active' => 'boolean',
+            'status' => 'required|in:' . implode(',', array_column(QueueStatus::cases(), 'value')),
         ]);
-        $validated['is_active'] = $request->has('is_active');
-        $queue->update($validated);
-        return redirect()->route('admin.queues.index')
+
+        $newStatus = QueueStatus::from($validated['status']);
+
+        // Si la file est fermée, on ne peut pas la modifier
+        if ($queue->status === QueueStatus::CLOSED) {
+            return redirect()->back()
+                ->with('error', 'Impossible de modifier une file fermée.');
+        }
+
+        // Si le statut a changé
+        if ($newStatus !== $queue->status) {
+            // Journaliser le changement de statut
+            // try {
+            //     Activity::onQueue('default')
+            //         ->performedOn($queue)
+            //         ->withProperties([
+            //             'old_status' => $queue->status->value,
+            //             'new_status' => $newStatus->value,
+            //             'changed_by' => $user->id
+            //         ])
+            //         ->log('Changement de statut de la file');
+            // } catch (\Exception $e) {
+            //     // En cas d'erreur avec le logging, on continue quand même
+            //     \Log::error('Erreur lors du journal du changement de statut: ' . $e->getMessage());
+            // }
+
+            // Si la file est bloquée, on annule tous les tickets en attente
+            if ($newStatus === QueueStatus::BLOCKED) {
+                $queue->tickets()
+                    ->where('status', 'waiting')
+                    ->update([
+                        'status' => 'cancelled',
+                        'cancelled_at' => now(),
+                        'cancelled_by' => $user->id,
+                        'cancellation_reason' => 'File bloquée par un administrateur'
+                    ]);
+            }
+
+            // Si la file est fermée, on annule tous les tickets en attente
+            if ($newStatus === QueueStatus::CLOSED) {
+                $queue->tickets()
+                    ->where('status', 'waiting')
+                    ->update([
+                        'status' => 'cancelled',
+                        'cancelled_at' => now(),
+                        'cancelled_by' => $user->id,
+                        'cancellation_reason' => 'File fermée par un administrateur'
+                    ]);
+            }
+        }
+
+        // Mettre à jour uniquement le nom, le statut sera géré séparément
+        $queue->update([
+            'name' => $validated['name'],
+            'status' => $newStatus
+        ]);
+
+        return redirect()->route('admin.queues.show', $queue)
             ->with('success', 'File d\'attente mise à jour avec succès.');
     }
 
     public function destroy(Queue $queue)
     {
         $user = auth()->user();
-        
+
         // Vérifier les permissions
         if (!$this->userCanManageQueue($user, $queue)) {
             abort(403, 'Vous n\'avez pas la permission de supprimer cette file d\'attente.');
         }
-        
+
         // Vérifier si l'utilisateur est propriétaire (pour les agents)
         if (!$user->isSuperAdmin() && !$user->isAdmin() && !$queue->userOwns($user)) {
             abort(403, 'Seul le propriétaire peut supprimer cette file d\'attente.');
@@ -428,21 +494,26 @@ class QueueController extends Controller
     public function toggleStatus(Queue $queue)
     {
         $user = auth()->user();
-        
+
         // Vérifier les permissions
         if (!$this->userCanManageQueue($user, $queue)) {
             abort(403, 'Vous n\'avez pas la permission de modifier cette file d\'attente.');
         }
 
-        // Inverser le statut actif
-        $queue->update(['is_active' => !$queue->is_active]);
-
-        // Si on désactive la file, on la met aussi hors pause
-        if (!$queue->is_active) {
-            $queue->update(['is_paused' => false]);
+        // Si la file est fermée, on ne peut pas changer son statut
+        if ($queue->status === QueueStatus::CLOSED) {
+            return redirect()->back()
+                ->with('error', 'Impossible de modifier le statut d\'une file fermée.');
         }
 
-        $status = $queue->is_active ? 'activée' : 'désactivée';
+        // Basculer entre ouvert et bloqué
+        $newStatus = $queue->status === QueueStatus::OPEN
+            ? QueueStatus::BLOCKED
+            : QueueStatus::OPEN;
+
+        $queue->update(['status' => $newStatus]);
+
+        $status = $newStatus === QueueStatus::OPEN ? 'débloquée' : 'bloquée';
         return redirect()->back()
             ->with('success', "La file a été {$status} avec succès.");
     }
@@ -456,22 +527,27 @@ class QueueController extends Controller
     public function togglePause(Queue $queue)
     {
         $user = auth()->user();
-        
+
         // Vérifier les permissions
         if (!$this->userCanManageQueue($user, $queue)) {
             abort(403, 'Vous n\'avez pas la permission de modifier cette file d\'attente.');
         }
 
-        // Si la file n'est pas active, on ne peut pas la mettre en pause
-        if (!$queue->is_active) {
+        // Si la file est en pause, on peut la reprendre
+        if ($queue->status === QueueStatus::PAUSED) {
+            $newStatus = QueueStatus::OPEN;
+        } 
+        // Sinon, on vérifie qu'elle est bien ouverte avant de la mettre en pause
+        else if ($queue->status === QueueStatus::OPEN) {
+            $newStatus = QueueStatus::PAUSED;
+        } else {
             return redirect()->back()
-                ->with('error', 'Impossible de mettre en pause une file désactivée.');
+                ->with('error', 'Impossible de modifier l\'état de cette file.');
         }
 
-        // Inverser l'état de pause
-        $queue->update(['is_paused' => !$queue->is_paused]);
+        $queue->update(['status' => $newStatus]);
 
-        $status = $queue->is_paused ? 'mise en pause' : 'reprise';
+        $status = $newStatus === QueueStatus::PAUSED ? 'mise en pause' : 'reprise';
         return redirect()->back()
             ->with('success', "La file a été {$status} avec succès.");
     }
@@ -485,17 +561,20 @@ class QueueController extends Controller
     public function close(Queue $queue)
     {
         $user = auth()->user();
-        
+
         // Vérifier les permissions
         if (!$this->userCanManageQueue($user, $queue)) {
             abort(403, 'Vous n\'avez pas la permission de fermer cette file d\'attente.');
         }
 
-        // Désactiver la file
-        $queue->update([
-            'is_active' => false,
-            'is_paused' => false
-        ]);
+        // Si la file est déjà fermée, on ne fait rien
+        if ($queue->status === QueueStatus::CLOSED) {
+            return redirect()->back()
+                ->with('warning', 'Cette file est déjà fermée.');
+        }
+
+        // Fermer la file
+        $queue->update(['status' => QueueStatus::CLOSED]);
 
         // Annuler les tickets en attente
         $queue->tickets()
@@ -503,10 +582,73 @@ class QueueController extends Controller
             ->update([
                 'status' => 'cancelled',
                 'cancelled_at' => now(),
-                'cancelled_by' => $user->id
+                'cancelled_by' => $user->id,
+                'cancellation_reason' => 'File fermée par un administrateur'
             ]);
 
         return redirect()->back()
             ->with('success', 'La file a été fermée avec succès. Les tickets en attente ont été annulés.');
+    }
+
+    /**
+     * Rouvre une file d'attente fermée
+     *
+     * @param  \App\Models\Queue  $queue
+     * @return \Illuminate\Http\Response
+     */
+    public function reopen(Queue $queue)
+    {
+        $user = auth()->user();
+
+        // Vérifier les permissions
+        if (!$this->userCanManageQueue($user, $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de rouvrir cette file d\'attente.');
+        }
+
+        // Si la file n'est pas fermée, on ne peut pas la rouvrir
+        if ($queue->status !== QueueStatus::CLOSED) {
+            return redirect()->back()
+                ->with('error', 'Impossible de rouvrir une file qui n\'est pas fermée.');
+        }
+
+        // Rouvrir la file avec le statut "open"
+        $queue->update(['status' => QueueStatus::OPEN]);
+
+        return redirect()->back()
+            ->with('success', 'La file a été rouverte avec succès.');
+    }
+
+    /**
+     * Annule tous les tickets en attente d'une file d'attente
+     *
+     * @param  \App\Models\Queue  $queue
+     * @return \Illuminate\Http\Response
+     */
+    public function cancelPendingTickets(Queue $queue)
+    {
+        $user = auth()->user();
+
+        // Vérifier les permissions
+        if (!$this->userCanManageQueue($user, $queue)) {
+            abort(403, 'Vous n\'avez pas la permission d\'annuler les tickets de cette file d\'attente.');
+        }
+
+        // Compter le nombre de tickets annulés
+        $count = $queue->tickets()
+            ->whereIn('status', ['waiting', 'called'])
+            ->update([
+                'status' => 'cancelled',
+                'cancelled_at' => now(),
+                'cancelled_by' => $user->id,
+                'cancellation_reason' => 'Annulation manuelle par un administrateur'
+            ]);
+
+        if ($count > 0) {
+            return redirect()->back()
+                ->with('success', "{$count} ticket(s) en attente ont été annulés avec succès.");
+        }
+
+        return redirect()->back()
+            ->with('info', 'Aucun ticket en attente à annuler.');
     }
 }

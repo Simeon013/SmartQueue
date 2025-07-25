@@ -122,6 +122,8 @@ Route::middleware(['auth', \App\Http\Middleware\CheckQueuePermission::class . ':
     Route::patch('{queue}/toggle-status', [\App\Http\Controllers\Admin\QueueController::class, 'toggleStatus'])->name('toggle-status');
     Route::patch('{queue}/toggle-pause', [\App\Http\Controllers\Admin\QueueController::class, 'togglePause'])->name('toggle-pause');
     Route::patch('{queue}/close', [\App\Http\Controllers\Admin\QueueController::class, 'close'])->name('close');
+    Route::patch('{queue}/reopen', [\App\Http\Controllers\Admin\QueueController::class, 'reopen'])->name('reopen');
+    Route::post('{queue}/cancel-pending-tickets', [\App\Http\Controllers\Admin\QueueController::class, 'cancelPendingTickets'])->name('cancel-pending-tickets');
     
     // Gestion des permissions
     Route::get('{queue}/permissions', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'index'])->name('permissions');

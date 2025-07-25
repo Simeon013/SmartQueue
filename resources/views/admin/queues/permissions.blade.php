@@ -107,8 +107,16 @@
                     <p class="mt-1 text-gray-600">Code: {{ $queue->code }}</p>
                 </div>
                 <div class="text-right">
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $queue->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                        {{ $queue->is_active ? 'Active' : 'Inactive' }}
+                    @php
+                        $statusInfo = [
+                            'open' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'label' => 'Ouverte/Active'],
+                            'paused' => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-800', 'label' => 'En pause'],
+                            'blocked' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'label' => 'Bloquée'],
+                            'closed' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'label' => 'Fermée'],
+                        ][$queue->status->value];
+                    @endphp
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $statusInfo['bg'] }} {{ $statusInfo['text'] }}">
+                        {{ $statusInfo['label'] }}
                     </span>
                 </div>
             </div>

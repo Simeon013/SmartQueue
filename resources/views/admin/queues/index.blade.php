@@ -155,8 +155,10 @@
                         <label for="status" class="block text-sm font-medium text-gray-700">Statut</label>
                         <select id="status" name="status" class="filter-select mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm">
                             <option value="">Tous les statuts</option>
-                            <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Actif</option>
-                            <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Inactif</option>
+                            <option value="open" {{ request('status') === 'open' ? 'selected' : '' }}>Ouverte</option>
+                            <option value="paused" {{ request('status') === 'paused' ? 'selected' : '' }}>En pause</option>
+                            <option value="blocked" {{ request('status') === 'blocked' ? 'selected' : '' }}>Bloquée</option>
+                            <option value="closed" {{ request('status') === 'closed' ? 'selected' : '' }}>Fermée</option>
                         </select>
                     </div>
 
@@ -317,10 +319,15 @@
                             <div class="text-sm font-medium text-gray-900">{{ $queue->name }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                {{ $queue->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $queue->is_active ? 'Ouverte' : 'Fermée' }}
-                            </span>
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    {{ 
+                                        $queue->status === 'open' ? 'bg-green-100 text-green-800' :
+                                        ($queue->status === 'paused' ? 'bg-yellow-100 text-yellow-800' :
+                                        ($queue->status === 'blocked' ? 'bg-orange-100 text-orange-800' :
+                                        'bg-gray-100 text-gray-800'))
+                                    }}">
+                                    {{ $queue->status_label }}
+                                </span>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                             {{ $queue->tickets()->where('status', 'waiting')->count() }}

@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\SystemSetting;
 use App\Models\Queue;
+use App\Enums\QueueStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -69,8 +70,8 @@ class AutoCloseQueues extends Command
             return 0;
         }
 
-        // Fermer toutes les files actives
-        $activeQueues = Queue::where('is_active', true)->get();
+        // Fermer toutes les files actives (ouvertes ou en pause)
+        $activeQueues = Queue::whereIn('status', [QueueStatus::OPEN->value, QueueStatus::PAUSED->value])->get();
 
         if ($activeQueues->isEmpty()) {
             $this->info('Aucune file active à fermer.');
@@ -81,8 +82,11 @@ class AutoCloseQueues extends Command
 
         $closedCount = 0;
         foreach ($activeQueues as $queue) {
-            $queue->update(['is_active' => false]);
-            $this->line("✓ File '{$queue->name}' fermée");
+            // Sauvegarder l'ancien statut pour le message de log
+            $oldStatus = $queue->status->label();
+            
+            $queue->update(['status' => QueueStatus::CLOSED]);
+            $this->line("✓ File '{$queue->name}' fermée (était: {$oldStatus})");
             $closedCount++;
         }
         

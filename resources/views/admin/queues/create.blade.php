@@ -22,13 +22,16 @@
                 @enderror
             </div>
 
-            <div class="flex items-center">
-                <input type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}
-                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring focus:ring-blue-500 focus:ring-opacity-50">
-                <label for="is_active" class="ml-2 block text-sm text-gray-700">File active</label>
-                @error('is_active')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+            <!-- Le statut est défini comme ouvert par défaut -->
+            <input type="hidden" name="status" value="open">
+            
+            <div class="p-3 bg-blue-50 border border-blue-100 rounded-md">
+                <p class="text-sm text-blue-800 flex items-start">
+                    <svg class="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Nouvelle file d'attente créée avec le statut <span class="ml-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Ouverte</span>
+                </p>
             </div>
 
             <!-- Note informative -->

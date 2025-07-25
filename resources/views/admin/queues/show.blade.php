@@ -10,6 +10,61 @@
     $canDelete = $user->hasRole('super-admin') || 
                 $user->hasRole('admin') || 
                 $queue->userOwns($user);
+    
+    // Définition des couleurs et icônes pour chaque statut
+    $statusConfig = [
+        'open' => [
+            'bg' => 'bg-green-100',
+            'text' => 'text-green-800',
+            'icon' => 'fa-play-circle',
+            'label' => 'Ouverte',
+            'indicator' => [
+                'bg' => 'bg-green-100',
+                'text' => 'text-green-800',
+                'icon' => 'fa-check-circle',
+                'message' => 'La file est active et en cours d\'utilisation'
+            ]
+        ],
+        'paused' => [
+            'bg' => 'bg-yellow-100',
+            'text' => 'text-yellow-800',
+            'icon' => 'fa-pause-circle',
+            'label' => 'En pause',
+            'indicator' => [
+                'bg' => 'bg-yellow-100',
+                'text' => 'text-yellow-800',
+                'icon' => 'fa-pause-circle',
+                'message' => 'La file est actuellement en pause'
+            ]
+        ],
+        'blocked' => [
+            'bg' => 'bg-orange-100',
+            'text' => 'text-orange-800',
+            'icon' => 'fa-ban',
+            'label' => 'Bloquée',
+            'indicator' => [
+                'bg' => 'bg-orange-100',
+                'text' => 'text-orange-800',
+                'icon' => 'fa-ban',
+                'message' => 'La file est actuellement bloquée'
+            ]
+        ],
+        'closed' => [
+            'bg' => 'bg-gray-100',
+            'text' => 'text-gray-800',
+            'icon' => 'fa-times-circle',
+            'label' => 'Fermée',
+            'indicator' => [
+                'bg' => 'bg-gray-100',
+                'text' => 'text-gray-800',
+                'icon' => 'fa-lock',
+                'message' => 'La file est fermée et ne peut plus être modifiée'
+            ]
+        ]
+    ];
+    
+    $status = $queue->status->value; // Convertir l'énumération en chaîne
+    $statusInfo = $statusConfig[$status] ?? $statusConfig['open'];
 @endphp
 
 @section('header', $queue->name)
@@ -26,12 +81,10 @@
                             {{ $queue->name }}
                         </h1>
                         <span class="ml-3 px-3 py-1 rounded-full text-xs font-semibold leading-5
-                            {{ $queue->is_active 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800' }}
+                            {{ $statusInfo['bg'] }} {{ $statusInfo['text'] }}
                             transform transition-all duration-200 hover:scale-105">
-                            <i class="fas {{ $queue->is_active ? 'fa-check-circle' : 'fa-times-circle' }} mr-1"></i>
-                            {{ $queue->is_active ? 'Active' : 'Inactive' }}
+                            <i class="fas {{ $statusInfo['icon'] }} mr-1"></i>
+                            {{ $statusInfo['label'] }}
                         </span>
                     </div>
                     
@@ -89,82 +142,103 @@
             <h3 class="text-lg font-medium leading-6 text-gray-900">Paramètres rapides</h3>
             <div class="mt-5">
                 <div class="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-3">
-                    <!-- Bouton Activer/Désactiver -->
-                    <form action="{{ route('admin.queues.toggle-status', $queue) }}" method="POST" class="flex-1">
-                        @csrf
-                        @method('PATCH')
-                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm
-                            {{ $queue->is_active ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500' }}">
-                            @if($queue->is_active)
-                                <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-                                </svg>
-                                Désactiver la file
+                    @if($canManage)
+                        @if($status !== 'closed')
+                            <!-- Bouton Basculer statut (Open/Blocked) -->
+                            @if($status === 'blocked' || $status === 'open')
+                            <form action="{{ route('admin.queues.toggle-status', $queue) }}" method="POST" class="flex-1">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm
+                                    {{ $status === 'blocked' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500' }}">
+                                    @if($status === 'blocked')
+                                        <i class="fas fa-unlock mr-2"></i>
+                                        Débloquer la file
+                                    @else
+                                        <i class="fas fa-ban mr-2"></i>
+                                        Bloquer la file
+                                    @endif
+                                </button>
+                            </form>
                             @else
-                                <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                                </svg>
-                                Activer la file
+                            <div class="flex-1"></div>
                             @endif
-                        </button>
-                    </form>
 
-                    <!-- Bouton Mettre en pause/Reprendre -->
-                    <form action="{{ route('admin.queues.toggle-pause', $queue) }}" method="POST" class="flex-1">
-                        @csrf
-                        @method('PATCH')
-                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:text-sm">
-                            @if($queue->is_paused)
-                                <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                                </svg>
-                                Reprendre la file
+                            <!-- Bouton Mettre en pause/Reprendre -->
+                            @if($status === 'open' || $status === 'paused')
+                            <form action="{{ route('admin.queues.toggle-pause', $queue) }}" method="POST" class="flex-1">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm
+                                    {{ $status === 'paused' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500' }}">
+                                    @if($status === 'paused')
+                                        <i class="fas fa-play mr-2"></i>
+                                        Reprendre la file
+                                    @else
+                                        <i class="fas fa-pause mr-2"></i>
+                                        Mettre en pause
+                                    @endif
+                                </button>
+                            </form>
                             @else
-                                <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z" />
-                                </svg>
-                                Mettre en pause
+                            <div class="flex-1"></div>
                             @endif
-                        </button>
-                    </form>
 
-                    <!-- Bouton Fermer la file -->
-                    <form action="{{ route('admin.queues.close', $queue) }}" method="POST" class="flex-1">
-                        @csrf
-                        @method('PATCH')
-                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
-                                onclick="return confirm('Êtes-vous sûr de vouloir fermer cette file ? Les tickets en attente seront annulés.')">
-                            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-                            </svg>
-                            Fermer la file
-                        </button>
-                    </form>
+                            <!-- Bouton Fermer la file -->
+                            @if($status !== 'closed')
+                            <form action="{{ route('admin.queues.close', $queue) }}" method="POST" class="flex-1">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm"
+                                    onclick="return confirm('Êtes-vous sûr de vouloir fermer cette file ? Cela annulera tous les tickets en attente.')">
+                                    <i class="fas fa-lock mr-2"></i>
+                                    Fermer la file
+                                </button>
+                            </form>
+                            @endif
+                        @else
+                            <!-- Si la file est fermée, afficher un bouton pour la rouvrir -->
+                            <form action="{{ route('admin.queues.reopen', $queue) }}" method="POST" class="flex-1">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:text-sm">
+                                    <i class="fas fa-unlock mr-2"></i>
+                                    Rouvrir la file
+                                </button>
+                            </form>
+                            <div class="flex-1"></div>
+                            <div class="flex-1"></div>
+                        @endif
+                    @else
+                        <!-- Si l'utilisateur ne peut pas gérer la file -->
+                        <div class="flex-1">
+                            <span class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md shadow-sm text-white bg-gray-400 cursor-not-allowed sm:text-sm">
+                                <i class="fas fa-ban mr-2"></i>
+                                Actions non autorisées
+                            </span>
+                        </div>
+                    @endif
                 </div>
                 
                 <!-- Indicateur d'état -->
-                <div class="mt-4 text-sm text-gray-500">
-                    @if($queue->is_paused)
-                        <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                            <svg class="-ml-1 mr-1.5 h-2 w-2 text-yellow-400" fill="currentColor" viewBox="0 0 8 8">
-                                <circle cx="4" cy="4" r="3" />
-                            </svg>
-                            La file est actuellement en pause
-                        </div>
-                    @elseif(!$queue->is_active)
-                        <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                            <svg class="-ml-1 mr-1.5 h-2 w-2 text-red-400" fill="currentColor" viewBox="0 0 8 8">
-                                <circle cx="4" cy="4" r="3" />
-                            </svg>
-                            La file est actuellement désactivée
-                        </div>
-                    @else
-                        <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                            <svg class="-ml-1 mr-1.5 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
-                                <circle cx="4" cy="4" r="3" />
-                            </svg>
-                            La file est active et en cours d'utilisation
-                        </div>
+                <div class="mt-4">
+                    <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $statusInfo['indicator']['bg'] }} {{ $statusInfo['indicator']['text'] }}">
+                        <i class="fas {{ $statusInfo['indicator']['icon'] }} mr-1.5"></i>
+                        {{ $statusInfo['indicator']['message'] }}
+                    </div>
+                    
+                    @if($status === 'closed' && $queue->tickets()->where('status', 'waiting')->exists())
+                    <div class="mt-2 text-sm text-yellow-700 bg-yellow-50 p-2 rounded-md">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        Il reste des tickets en attente dans cette file. Voulez-vous les annuler ?
+                        <form action="{{ route('admin.queues.cancel-pending-tickets', $queue) }}" method="POST" class="inline ml-2">
+                            @csrf
+                            <button type="submit" class="text-yellow-700 hover:text-yellow-900 font-medium"
+                                onclick="return confirm('Êtes-vous sûr de vouloir annuler tous les tickets en attente ?')">
+                                Annuler les tickets
+                            </button>
+                        </form>
+                    </div>
                     @endif
                 </div>
             </div>
