@@ -63,10 +63,10 @@ class QueueController extends Controller
                 ->pluck('queue_id');
             
             // Si l'agent n'a accès à aucune file, on le redirige avec un message
-            if ($accessibleQueueIds->isEmpty()) {
-                return redirect()->route('admin.dashboard')
-                               ->with('info', 'Vous n\'avez accès à aucune file d\'attente pour le moment.');
-            }
+            // if ($accessibleQueueIds->isEmpty()) {
+            //     return redirect()->route('admin.dashboard')
+            //                    ->with('info', 'Vous n\'avez accès à aucune file d\'attente pour le moment.');
+            // }
             
             $query->whereIn('id', $accessibleQueueIds);
         }

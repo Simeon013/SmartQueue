@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Enums\UserRole;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -12,6 +13,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Create 5 random establishments
+        \App\Models\Establishment::factory(5)->create();
+        
         // \App\Models\User::factory(10)->create();
 
         // \App\Models\User::factory()->create([
@@ -23,18 +27,18 @@ class DatabaseSeeder extends Seeder
         $this->call(PermissionsSeeder::class);
 
         // Puis créer les rôles avec leurs permissions
-        $this->call(RolesSeeder::class);
+        // $this->call(RolesSeeder::class);
 
         // Créer un utilisateur admin par défaut
         \App\Models\User::factory()->create([
             'name' => 'Admin',
-            'email' => 'admin@smartqueue.com',
+            'email' => 'admin@admin.com',
             'password' => bcrypt('password'),
-            'role' => 'admin',
+            'role' => UserRole::SUPER_ADMIN,
         ]);
 
         // Assigner le rôle admin à l'utilisateur admin
-        $adminUser = \App\Models\User::where('email', 'admin@smartqueue.com')->first();
+        $adminUser = \App\Models\User::where('email', 'admin@admin.com')->first();
         $adminRole = \App\Models\Role::where('slug', 'admin')->first();
 
         if ($adminUser && $adminRole) {

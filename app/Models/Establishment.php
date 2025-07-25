@@ -11,17 +11,18 @@ class Establishment extends Model
 
     protected $fillable = [
         'name',
-        'address',
-        'phone',
-        'email',
         'description',
-        'is_active',
-        'type'
+        'type',
+        'address',
+        'city',
+        'postal_code',
+        'country',
+        // 'is_active',
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
+    // protected $casts = [
+    //     'is_active' => 'boolean',
+    // ];
 
     public function queues()
     {

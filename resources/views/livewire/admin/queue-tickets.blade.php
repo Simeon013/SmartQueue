@@ -401,26 +401,6 @@
                             </td>
                         </tr>
                         @empty
-                        <tr>
-                            <td colspan="5" class="px-6 py-8 text-center">
-                                <div class="flex flex-col justify-center items-center">
-                                    <i class="mx-auto text-4xl text-gray-300 fas fa-ticket-alt"></i>
-                                    <h3 class="mt-2 text-sm font-medium text-gray-900">Aucun ticket trouvé</h3>
-                                    <p class="mt-1 text-sm text-gray-500">
-                                        {{ $search ? 'Aucun résultat pour votre recherche.' : 'Aucun ticket disponible pour le moment.' }}
-                                    </p>
-                                    @if($search)
-                                        <button
-                                            wire:click="$set('search', '')"
-                                            class="inline-flex items-center px-3 py-1.5 mt-3 text-xs font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        >
-                                            <i class="mr-1.5 fas fa-times"></i>
-                                            Réinitialiser la recherche
-                                        </button>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
                         @endforelse
                     </tbody>
                 </table>

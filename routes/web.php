@@ -31,9 +31,9 @@ Route::post('/q/{ticket}/resume', [App\Http\Controllers\Public\QueueController::
 Route::post('/q/{queue}/join', [App\Http\Controllers\Public\QueueController::class, 'join'])->name('public.queue.join');
 
 
-Route::get('/dashboard', function () {
+Route::get('/admin', function () {
     return view('admin.dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'verified'])->name('admin');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -52,15 +52,15 @@ Route::middleware('auth')->group(function () {
 
 // Accessible à tous les utilisateurs authentifiés
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', function () {
+        return view('admin.dashboard');
+    })->name('dashboard');
     Route::resource('queues', \App\Http\Controllers\Admin\QueueController::class);
 });
 
 // Les autres routes admin restent protégées
 // Routes administratives globales (nécessitent d'être admin)
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('dashboard');
+Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
 
     // Routes pour les tickets dans les files d'attente
     Route::prefix('queues/{queue}/tickets')->name('queues.tickets.')->group(function () {
