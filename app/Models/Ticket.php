@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use App\Models\TicketCycle;
 
 class Ticket extends Model
 {
@@ -15,6 +16,7 @@ class Ticket extends Model
         'code_ticket',
         'number',
         'status',
+        'cycle',
         'wants_notifications',
         'notification_channel',
         'called_at',
@@ -38,6 +40,17 @@ class Ticket extends Model
         return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 
+    /**
+     * Scope pour les tickets du cycle actuel
+     */
+    public function scopeCurrentCycle($query)
+    {
+        return $query->where('cycle', TicketCycle::currentCycle());
+    }
+
+    /**
+     * Récupère la position du ticket dans la file d'attente
+     */
     public function getPositionAttribute()
     {
         if (!in_array($this->status, ['waiting', 'paused'])) {
@@ -45,6 +58,7 @@ class Ticket extends Model
         }
 
         return $this->queue->tickets()
+            ->where('cycle', $this->cycle)
             ->whereIn('status', ['waiting', 'paused'])
             ->where('created_at', '<', $this->created_at)
             ->count() + 1;

@@ -41,25 +41,14 @@ class QueueController extends Controller
                 ->with('error', 'Vous avez déjà un ticket en cours pour cette file.');
         }
 
-        $lastTicket = $queue->tickets()->orderByDesc('id')->first();
-        $codeTicket = !$lastTicket ? 'A-01' : (function() use ($lastTicket) {
-            if (preg_match('/^([A-Z])-(\d+)$/', $lastTicket->code_ticket, $matches)) {
-                $letter = $matches[1];
-                $number = (int)$matches[2];
-                if ($number >= 99) {
-                    $letter = chr(ord($letter) + 1);
-                    $number = 1;
-                } else {
-                    $number++;
-                }
-                return sprintf('%s-%02d', $letter, $number);
-            }
-            return 'A-01';
-        })();
-
+        // Utiliser le service de génération de codes de tickets
+        $ticketService = app(\App\Services\TicketCodeService::class);
+        $result = $ticketService->generateNextCode($queue);
+        
         $ticket = $queue->tickets()->create([
             'queue_id' => $queue->id,
-            'code_ticket' => $codeTicket,
+            'code_ticket' => $result['code'],
+            'cycle' => $result['cycle'],
             'status' => 'waiting',
             'session_id' => $sessionId,
         ]);

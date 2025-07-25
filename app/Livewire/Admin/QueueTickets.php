@@ -34,50 +34,36 @@ class QueueTickets extends Component
         $this->queue = $queue;
     }
 
+    /**
+     * Génère le prochain code de ticket en utilisant le service de génération
+     */
     private function generateTicketCode()
     {
-        // Récupérer le dernier ticket de la file
-        $lastTicket = $this->queue->tickets()->latest('id')->first();
-
-        if (!$lastTicket) {
-            return 'A-01';
-        }
-
-        // Extraire la lettre et le numéro du dernier code
-        preg_match('/^([A-Z])-(\d+)$/', $lastTicket->code_ticket, $matches);
-
-        if (!$matches) {
-            return 'A-01';
-        }
-
-        $letter = $matches[1];
-        $number = (int)$matches[2];
-
-        // Si on atteint 99, passer à la lettre suivante
-        if ($number >= 99) {
-            $letter = chr(ord($letter) + 1);
-            $number = 1;
-        } else {
-            $number++;
-        }
-
-        // Formater le nouveau code
-        return sprintf('%s-%02d', $letter, $number);
+        $ticketService = app(\App\Services\TicketCodeService::class);
+        $result = $ticketService->generateNextCode($this->queue);
+        
+        return $result['code'];
     }
 
     public function createTicket()
     {
         try {
+            // Valider les données du formulaire
             $this->validate();
 
+            // Commencer une transaction
             DB::beginTransaction();
 
-            // Générer le code du ticket
-            $codeTicket = $this->generateTicketCode();
+            // Générer le code du ticket et récupérer le cycle
+            $ticketService = app(\App\Services\TicketCodeService::class);
+            $result = $ticketService->generateNextCode($this->queue);
+            $codeTicket = $result['code'];
+            $cycle = $result['cycle'];
 
             // Créer le ticket
             $ticket = $this->queue->tickets()->create([
                 'code_ticket' => $codeTicket,
+                'cycle' => $cycle,
                 'name' => $this->ticketName,
                 'email' => $this->ticketEmail ?: null,
                 'phone' => $this->ticketPhone ?: null,

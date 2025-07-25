@@ -85,6 +85,13 @@ class AutoCloseQueues extends Command
             $this->line("✓ File '{$queue->name}' fermée");
             $closedCount++;
         }
+        
+        // Réinitialiser le compteur de cycle
+        if ($closedCount > 0) {
+            $ticketService = app(\App\Services\TicketCodeService::class);
+            $newCycle = $ticketService->resetCycle();
+            $this->info("✅ Compteur de tickets réinitialisé. Nouveau cycle : {$newCycle}");
+        }
 
         $this->info("✅ {$closedCount} file(s) d'attente fermée(s) avec succès.");
 
