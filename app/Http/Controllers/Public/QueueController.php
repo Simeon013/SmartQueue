@@ -14,6 +14,16 @@ class QueueController extends Controller
 {
     public function show(Queue $queue)
     {
+        // Vérifier si la file est accessible
+        if ($queue->status->value === 'closed' || $queue->status->value === 'blocked') {
+            $statusMessage = $queue->status->value === 'closed' 
+                ? 'Cette file d\'attente est actuellement fermée.'
+                : 'Cette file d\'attente est actuellement bloquée.';
+                
+            return redirect()->route('public.queues.index')
+                ->with('error', $statusMessage);
+        }
+
         $sessionId = session()->getId();
         $ticket = $queue->tickets()
             ->where('session_id', $sessionId)
@@ -30,6 +40,26 @@ class QueueController extends Controller
 
     public function join(Request $request, Queue $queue)
     {
+        // Vérifier si la file est ouverte
+        if ($queue->status->value !== 'open') {
+            $errorMessage = match($queue->status->value) {
+                'paused' => 'Cette file d\'attente est actuellement en pause. Veuillez réessayer ultérieurement.',
+                'blocked' => 'Cette file d\'attente est actuellement bloquée.',
+                'closed' => 'Cette file d\'attente est actuellement fermée.',
+                default => 'Impossible de rejoindre cette file d\'attente pour le moment.'
+            };
+            
+            Log::info('Tentative de rejoindre une file non ouverte', [
+                'queue_id' => $queue->id,
+                'status' => $queue->status->value,
+                'error' => $errorMessage
+            ]);
+            
+            return redirect()
+                ->back()
+                ->with('error', $errorMessage);
+        }
+
         $sessionId = $request->session()->getId();
         $existingTicket = $queue->tickets()
             ->where('session_id', $sessionId)

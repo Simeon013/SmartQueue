@@ -92,6 +92,34 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen font-sans antialiased bg-gray-100">
     <div class="w-full px-6 py-4 mt-6 overflow-hidden bg-white shadow-md py-202 sm:max-w-md sm:rounded-lg">
+        <!-- Affichage du statut de la file -->
+        @php
+            $statusInfo = [
+                'open' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'label' => 'Ouverte/Active'],
+                'paused' => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-800', 'label' => 'En pause'],
+                'blocked' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'label' => 'Bloquée'],
+                'closed' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'label' => 'Fermée'],
+            ][$queue->status->value];
+        @endphp
+
+        <div class="mb-4 text-center">
+            <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ $statusInfo['bg'] }} {{ $statusInfo['text'] }}">
+                {{ $statusInfo['label'] }}
+            </span>
+        </div>
+
+        @if(session('error'))
+            <div class="p-3 mb-4 text-sm text-red-800 bg-red-50 rounded-lg" role="alert">
+                <span class="font-medium">Erreur :</span> {{ session('error') }}
+            </div>
+        @endif
+
+        @if($queue->status->value === 'paused')
+            <div class="p-3 mb-4 text-sm text-yellow-800 bg-yellow-50 rounded-lg" role="alert">
+                <span class="font-medium">Information :</span> Cette file d'attente est actuellement en pause. Votre inscription sera enregistrée, mais le traitement des tickets est temporairement suspendu.
+            </div>
+        @endif
+
         <h1 class="mb-4 text-2xl font-bold text-center text-gray-800">Confirmez votre inscription</h1>
 
         <div class="flex items-center justify-center mb-6 font-semibold text-center text-green-600">
@@ -123,8 +151,23 @@
             <div class="py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between text-lg">
                     <span class="text-gray-600">Statut</span>
-                    <span class="{{ $queue->is_active ? 'status-badge-active' : 'status-badge-closed' }}">
-                        {{ $queue->is_active ? 'File active' : 'File fermée' }}
+                    @php
+                        $statusClasses = [
+                            'open' => 'bg-green-100 text-green-800',
+                            'paused' => 'bg-yellow-100 text-yellow-800',
+                            'blocked' => 'bg-red-100 text-red-800',
+                            'closed' => 'bg-gray-100 text-gray-800',
+                        ][$queue->status->value];
+                        
+                        $statusLabels = [
+                            'open' => 'Ouverte/Active',
+                            'paused' => 'En pause',
+                            'blocked' => 'Bloquée',
+                            'closed' => 'Fermée',
+                        ][$queue->status->value];
+                    @endphp
+                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ $statusClasses }}">
+                        {{ $statusLabels }}
                     </span>
                 </div>
             </div>

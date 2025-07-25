@@ -47,8 +47,8 @@ class TicketCodeService
      */
     protected function getQueuePrefix(int $queueId, int $cycle): string
     {
-        // Récupérer toutes les files actives triées par ID
-        $activeQueues = \App\Models\Queue::where('is_active', true)
+        // Récupérer toutes les files actives (ouvertes ou en pause) triées par ID
+        $activeQueues = \App\Models\Queue::whereIn('status', ['open', 'paused'])
             ->orderBy('id')
             ->pluck('id')
             ->toArray();

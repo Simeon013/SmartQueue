@@ -45,8 +45,23 @@
             <div class="position-card">
                 <div class="position-card-title">Statut de la File</div>
                 <div class="position-card-value">
-                    <span class="{{ $queue->is_active ? 'status-badge-active' : 'status-badge-closed' }}">
-                        {{ $queue->is_active ? 'Active' : 'Fermée' }}
+                    @php
+                        $statusClasses = [
+                            'open' => 'bg-green-100 text-green-800',
+                            'paused' => 'bg-yellow-100 text-yellow-800',
+                            'blocked' => 'bg-red-100 text-red-800',
+                            'closed' => 'bg-gray-100 text-gray-800',
+                        ][$queue->status->value];
+                        
+                        $statusLabels = [
+                            'open' => 'Active',
+                            'paused' => 'En pause',
+                            'blocked' => 'Bloquée',
+                            'closed' => 'Fermée',
+                        ][$queue->status->value];
+                    @endphp
+                    <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ $statusClasses }}">
+                        {{ $statusLabels }}
                     </span>
                 </div>
             </div>

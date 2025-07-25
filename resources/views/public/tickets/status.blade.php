@@ -70,8 +70,43 @@
         }
     </style>
 </head>
-<body class="font-sans bg-gray-100">
-    <div class="flex flex-col min-h-screen">
+<body class="flex flex-col items-center justify-center min-h-screen font-sans antialiased bg-gray-100">
+    <div class="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-lg">
+        <!-- Affichage du statut de la file -->
+        @php
+            $statusInfo = [
+                'open' => ['bg' => 'bg-green-100', 'text' => 'text-green-800', 'label' => 'Ouverte/Active'],
+                'paused' => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-800', 'label' => 'En pause'],
+                'blocked' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'label' => 'Bloquée'],
+                'closed' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'label' => 'Fermée'],
+            ][$queue->status->value];
+        @endphp
+        
+        <div class="mb-4 text-center">
+            <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ $statusInfo['bg'] }} {{ $statusInfo['text'] }}">
+                {{ $statusInfo['label'] }}
+            </span>
+        </div>
+
+        @if($queue->status === 'paused')
+            <div class="p-3 mb-4 text-sm text-yellow-800 bg-yellow-50 rounded-lg" role="alert">
+                <span class="font-medium">Information :</span> Cette file d'attente est actuellement en pause. Le traitement des tickets est temporairement suspendu.
+            </div>
+        @elseif($queue->status === 'blocked')
+            <div class="p-3 mb-4 text-sm text-red-800 bg-red-50 rounded-lg" role="alert">
+                <span class="font-medium">Attention :</span> Cette file d'attente est actuellement bloquée. Aucun nouveau ticket ne sera traité pour le moment.
+            </div>
+        @elseif($queue->status === 'closed')
+            <div class="p-3 mb-4 text-sm text-gray-800 bg-gray-50 rounded-lg" role="alert">
+                <span class="font-medium">Information :</span> Cette file d'attente est actuellement fermée.
+            </div>
+        @endif
+
+        <div class="text-center">
+            <h1 class="mb-2 text-2xl font-bold text-gray-800">{{ $queue->name }}</h1>
+            <p class="text-gray-600">Votre position dans la file d'attente</p>
+        </div>
+
         <!-- Navbar -->
         <nav class="flex items-center justify-between p-4 bg-white shadow">
             <div class="text-xl font-bold text-gray-800">VirtualQ</div>
