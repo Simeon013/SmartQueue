@@ -5,14 +5,20 @@ namespace App\Livewire\Public;
 use Livewire\Component;
 use App\Models\Ticket;
 use App\Models\Queue;
+use App\Traits\FormatsDuration;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Log;
 
 class RealtimeTicketStatus extends Component
 {
-    public Ticket $ticket;
-    public Queue $queue;
+    use FormatsDuration;
 
-    public $position;
-    public $estimatedWaitTime;
+    public $ticket;
+    public $queue;
+    public $position = 0;
+    public $estimatedWaitTime = '--:--';
+    public $actualWaitTime = '--:--';
+    public $processingTime = '--:--';
     public $currentServingTicketCode;
     public $waitingTicketsCount;
 
@@ -31,17 +37,60 @@ class RealtimeTicketStatus extends Component
 
     private function updateTicketData()
     {
-        // Re-fetch the latest ticket and queue data to ensure real-time accuracy
-        $this->ticket->refresh();
-        $this->queue->refresh();
+        $sessionId = Session::getId();
 
-        $this->position = $this->ticket->getPositionAttribute();
-        $this->estimatedWaitTime = $this->ticket->getEstimatedWaitTimeAttribute();
+        // Récupérer le ticket avec les relations nécessaires
+        $ticket = $this->queue->tickets()
+            ->where('session_id', $sessionId)
+            ->whereIn('status', ['waiting', 'in_progress'])
+            ->with('handler')
+            ->first();
 
-        $currentServingTicket = $this->queue->tickets()->where('status', 'called')->orderBy('updated_at', 'desc')->first();
+        if ($ticket) {
+            $this->ticket = $ticket;
+
+            // Mettre à jour la position dans la file d'attente
+            $this->position = $ticket->position;
+
+            // Mettre à jour le temps d'attente estimé
+            if ($ticket->status === 'waiting' && $ticket->estimated_wait_time) {
+                $this->estimatedWaitTime = $this->formatDuration($ticket->estimated_wait_time);
+            } else {
+                $this->estimatedWaitTime = '--:--';
+            }
+
+            // Mettre à jour le temps d'attente réel
+            if ($ticket->actual_wait_time) {
+                $this->actualWaitTime = $this->formatDuration($ticket->actual_wait_time);
+            } else {
+                $this->actualWaitTime = '--:--';
+            }
+
+            // Mettre à jour le temps de traitement si le ticket est en cours
+            if ($ticket->status === 'in_progress' && $ticket->processing_time) {
+                $this->processingTime = $this->formatDuration($ticket->processing_time);
+            } else {
+                $this->processingTime = '--:--';
+            }
+        } else {
+            $this->ticket = null;
+            $this->position = 0;
+            $this->estimatedWaitTime = '--:--';
+            $this->actualWaitTime = '--:--';
+            $this->processingTime = '--:--';
+        }
+
+        // Récupérer le ticket actuellement en cours de traitement par l'utilisateur
+        $currentServingTicket = $this->queue->tickets()
+            ->where('id', $this->ticket->id)
+            ->where('status', 'in_progress')
+            ->first();
+
         $this->currentServingTicketCode = $currentServingTicket ? $currentServingTicket->code_ticket : 'Aucun ticket en cours de traitement';
 
-        $this->waitingTicketsCount = $this->queue->tickets()->where('status', 'waiting')->count();
+        $this->waitingTicketsCount = $this->queue->tickets()
+            ->where('status', 'waiting')
+            ->count();
     }
 
     public function pauseTicket()

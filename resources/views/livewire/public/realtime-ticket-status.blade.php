@@ -5,18 +5,23 @@
         <p class="text-blue-200">Restez informé de votre progression dans la file</p>
     </div>
 
-    @if ($ticket->status === 'called')
-        <div class="p-4 text-center text-blue-700 bg-blue-100 border border-blue-400 rounded-lg shadow-md">
-            <p class="text-xl font-semibold">Votre ticket <span class="font-bold">{{ $ticket->code_ticket }}</span> est appelé !</p>
-            <p class="text-lg">Veuillez rejoindre le guichet.</p>
+    @if ($ticket->status === 'in_progress')
+        <div class="p-4 text-center text-blue-700 bg-blue-100 rounded-lg border border-blue-400 shadow-md">
+            <p class="text-xl font-semibold">Votre ticket <span class="font-bold">{{ $ticket->code_ticket }}</span> est en cours de traitement !</p>
+            @if($ticket->handler)
+                <p class="text-lg">Veuillez rejoindre l'agent.</p>
+                {{--  <span class="font-semibold">{{ $ticket->handler->name }}</span> --}}
+            @else
+                <p class="text-lg">Veuillez vous présenter à l'accueil.</p>
+            @endif
         </div>
     @elseif ($ticket->status === 'paused')
-        <div class="p-4 text-center text-yellow-700 bg-yellow-100 border border-yellow-400 rounded-lg shadow-md">
+        <div class="p-4 text-center text-yellow-700 bg-yellow-100 rounded-lg border border-yellow-400 shadow-md">
             <p class="font-semibold">Votre ticket est en pause. Votre position est conservée.</p>
             <p class="text-sm">Vous pouvez revenir dans la file à tout moment.</p>
         </div>
     @elseif ($position <= 3 && $position > 0)
-        <div class="p-4 text-center text-orange-700 bg-orange-100 border border-orange-400 rounded-lg shadow-md">
+        <div class="p-4 text-center text-orange-700 bg-orange-100 rounded-lg border border-orange-400 shadow-md">
             <p class="font-semibold">Attention ! Votre position est proche. Préparez-vous !</p>
         </div>
     @endif
@@ -39,9 +44,25 @@
                 </div>
             </div>
             <div class="position-card">
-                <div class="position-card-title">Temps Estimé</div>
-                <div class="position-card-value">{{ $estimatedWaitTime }}</div>
+                <div class="position-card-title">Temps d'attente estimé</div>
+                <div class="position-card-value">
+                    {{ $estimatedWaitTime }}
+                </div>
             </div>
+            {{-- <div class="position-card">
+                <div class="position-card-title">Temps d'attente réel</div>
+                <div class="position-card-value">
+                    {{ $actualWaitTime }}
+                </div>
+            </div>
+            @if($ticket->status === 'in_progress')
+            <div class="position-card">
+                <div class="position-card-title">Temps de traitement</div>
+                <div class="position-card-value">
+                    {{ $processingTime }}
+                </div>
+            </div>
+            @endif --}}
             <div class="position-card">
                 <div class="position-card-title">Statut de la File</div>
                 <div class="position-card-value">
@@ -52,7 +73,7 @@
                             'blocked' => 'bg-red-100 text-red-800',
                             'closed' => 'bg-gray-100 text-gray-800',
                         ][$queue->status->value];
-                        
+
                         $statusLabels = [
                             'open' => 'Active',
                             'paused' => 'En pause',
@@ -81,7 +102,7 @@
     @endif
 
     @if ($ticket->status === 'served' || $ticket->status === 'skipped')
-        <div class="p-4 text-center text-gray-700 bg-gray-100 border border-gray-400 rounded-lg shadow-md space-y-4">
+        <div class="p-4 space-y-4 text-center text-gray-700 bg-gray-100 rounded-lg border border-gray-400 shadow-md">
             @if ($ticket->status === 'served')
                 <p class="text-xl font-semibold">Votre ticket <span class="font-bold">{{ $ticket->code_ticket }}</span> a été traité.</p>
                 <p class="text-base">Nous espérons que vous avez été bien servi. Merci de votre patience !</p>
@@ -91,7 +112,7 @@
             @endif
             <div class="flex justify-center p-4">
                 <form action="{{ route('public.queues.index') }}" method="GET" class="w-full max-w-sm">
-                    <button type="submit" class="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    <button type="submit" class="px-4 py-2 w-full text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                         Quitter
                     </button>
                 </form>
@@ -103,14 +124,14 @@
             @if ($ticket->status === 'paused')
                 <form wire:submit.prevent="resumeTicket" class="w-full max-w-sm">
                     @csrf
-                    <button type="submit" class="w-full px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                    <button type="submit" class="px-4 py-2 w-full text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                         Retour dans la file
                     </button>
                 </form>
             @else
                 <form wire:submit.prevent="pauseTicket" class="w-full max-w-sm" onsubmit="return confirm('Êtes-vous sûr de vouloir quitter la file momentanément ? Vous pourrez y revenir plus tard.');">
                     @csrf
-                    <button type="submit" class="w-full px-4 py-2 text-black bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
+                    <button type="submit" class="px-4 py-2 w-full text-black bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
                         Sortie momentanée
                     </button>
                 </form>
@@ -122,7 +143,7 @@
             <form wire:submit.prevent="cancelTicket" class="w-full max-w-sm" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler votre ticket ? Cette action est irréversible.');">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="w-full px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
+                <button type="submit" class="px-4 py-2 w-full text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
                     Quitter
                 </button>
             </form>

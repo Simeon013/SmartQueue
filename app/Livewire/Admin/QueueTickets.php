@@ -4,13 +4,17 @@ namespace App\Livewire\Admin;
 use Livewire\Component;
 use App\Models\Queue;
 use App\Models\Ticket;
+use App\Models\User;
+use App\Traits\FormatsDuration;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class QueueTickets extends Component
 {
-    use WithPagination;
+    use WithPagination, FormatsDuration;
 
     public Queue $queue;
     public $ticketName = '';
@@ -102,19 +106,40 @@ class QueueTickets extends Component
     public function updateTicketStatus(Ticket $ticket, $status)
     {
         try {
-            $updateData = ['status' => $status];
-
-            if ($status === 'called') {
-                $updateData['called_at'] = now();
-            } elseif ($status === 'served') {
-                $updateData['served_at'] = now();
+            $user = Auth::user();
+            
+            switch ($status) {
+                case 'in_progress':
+                    if ($ticket->is_being_handled && !$ticket->isHandledBy($user)) {
+                        session()->flash('error', 'Ce ticket est déjà en cours de traitement par un autre agent.');
+                        return;
+                    }
+                    $ticket->assignTo($user);
+                    session()->flash('success', 'Ticket ' . $ticket->code_ticket . ' pris en charge avec succès');
+                    break;
+                    
+                case 'served':
+                    $ticket->markAsServed();
+                    session()->flash('success', 'Ticket ' . $ticket->code_ticket . ' marqué comme traité');
+                    break;
+                    
+                case 'skipped':
+                    $ticket->markAsSkipped();
+                    session()->flash('success', 'Ticket ' . $ticket->code_ticket . ' marqué comme ignoré');
+                    break;
+                    
+                case 'waiting':
+                default:
+                    $ticket->release();
+                    session()->flash('success', 'Ticket ' . $ticket->code_ticket . ' remis en attente');
+                    break;
             }
-
-            $ticket->update($updateData);
-            $this->dispatch('ticket-status-updated');
+            
+            $this->dispatch('ticket-updated');
 
         } catch (\Exception $e) {
-            session()->flash('error', 'Erreur lors de la mise à jour du statut');
+            Log::error('Erreur lors de la mise à jour du statut du ticket: ' . $e->getMessage());
+            session()->flash('error', 'Erreur lors de la mise à jour du statut: ' . $e->getMessage());
         }
     }
 
@@ -154,18 +179,21 @@ class QueueTickets extends Component
 
     public function getCurrentTicketProperty()
     {
-        // D'abord chercher un ticket appelé mais pas encore servi
-        $calledTicket = $this->queue->tickets()
-            ->where('status', 'called')
-            ->orderBy('called_at', 'asc')
+        $user = Auth::user();
+        
+        // Vérifier d'abord si l'utilisateur a déjà un ticket en cours de traitement
+        $userTicket = $this->queue->tickets()
+            ->where('status', 'in_progress')
+            ->where('handled_by', $user->id)
+            ->orderBy('handled_at', 'asc')
             ->first();
-
-        if ($calledTicket) {
-            Log::info('Ticket appelé trouvé', ['ticket' => $calledTicket->toArray()]);
-            return $calledTicket;
+            
+        if ($userTicket) {
+            Log::info('Ticket en cours trouvé pour l\'utilisateur', ['ticket' => $userTicket->toArray()]);
+            return $userTicket;
         }
-
-        // Sinon, prendre le prochain ticket en attente
+        
+        // Sinon, chercher un ticket en attente
         $waitingTicket = $this->queue->tickets()
             ->where('status', 'waiting')
             ->orderBy('created_at', 'asc')
@@ -176,7 +204,7 @@ class QueueTickets extends Component
             return $waitingTicket;
         }
 
-        Log::info('Aucun ticket trouvé');
+        Log::info('Aucun ticket disponible');
         return null;
     }
 
@@ -188,29 +216,23 @@ class QueueTickets extends Component
         }
 
         try {
+            $user = Auth::user();
+            
             switch ($action) {
+                case 'take':
+                    $this->updateTicketStatus($this->currentTicket, 'in_progress');
+                    break;
+                    
                 case 'validate':
                     $this->updateTicketStatus($this->currentTicket, 'served');
-                    session()->flash('success', 'Ticket ' . $this->currentTicket->code_ticket . ' validé avec succès');
                     break;
 
                 case 'absent':
                     $this->updateTicketStatus($this->currentTicket, 'skipped');
-                    session()->flash('success', 'Ticket ' . $this->currentTicket->code_ticket . ' marqué comme absent');
                     break;
 
-                case 'call':
-                    $this->updateTicketStatus($this->currentTicket, 'called');
-                    session()->flash('success', 'Ticket ' . $this->currentTicket->code_ticket . ' appelé');
-                    break;
-
-                case 'recall':
-                    // Réinitialiser le statut à 'waiting' et mettre à jour called_at
-                    $this->currentTicket->update([
-                        'status' => 'waiting',
-                        'called_at' => null
-                    ]);
-                    session()->flash('success', 'Ticket ' . $this->currentTicket->code_ticket . ' remis en attente');
+                case 'release':
+                    $this->updateTicketStatus($this->currentTicket, 'waiting');
                     break;
             }
 
@@ -218,7 +240,7 @@ class QueueTickets extends Component
             $this->dispatch('$refresh');
 
         } catch (\Exception $e) {
-            session()->flash('error', 'Erreur lors du traitement du ticket');
+            session()->flash('error', 'Erreur lors du traitement du ticket: ' . $e->getMessage());
             Log::error('Erreur action rapide ticket: ' . $e->getMessage());
         }
     }
@@ -236,22 +258,70 @@ class QueueTickets extends Component
     
     public function render()
     {
+        $user = Auth::user();
+        
+        // Récupérer les tickets en attente et en cours de traitement
         $query = $this->queue->tickets()
-            ->whereIn('status', ['waiting', 'called']);
+            ->whereIn('status', ['waiting', 'in_progress'])
+            ->with('handler'); // Charger la relation handler pour afficher l'agent qui gère le ticket
             
         // Appliquer le tri
         if ($this->sortField === 'status') {
             $query->orderByRaw("CASE 
-                WHEN status = 'waiting' THEN 1 
-                WHEN status = 'called' THEN 2
+                WHEN status = 'in_progress' THEN 1 
+                WHEN status = 'waiting' THEN 2
             END", $this->sortDirection);
         } else {
             $query->orderBy($this->sortField, $this->sortDirection);
         }
+        
+        // Calcul des temps moyens avec cache
+        $cacheKey = "queue_{$this->queue->id}_stats";
+        $stats = Cache::remember($cacheKey, now()->addMinute(), function() {
+            // Temps d'attente moyen (création -> prise en charge)
+            $avgWaitTime = $this->queue->tickets()
+                ->whereIn('status', ['served', 'skipped'])
+                ->whereNotNull('handled_at')
+                ->selectRaw('AVG(TIMESTAMPDIFF(SECOND, created_at, handled_at)) as avg_wait_time')
+                ->value('avg_wait_time');
+
+            // Temps de traitement moyen (prise en charge -> service)
+            $avgProcessingTime = $this->queue->tickets()
+                ->where('status', 'served')
+                ->whereNotNull('handled_at')
+                ->whereNotNull('served_at')
+                ->selectRaw('AVG(TIMESTAMPDIFF(SECOND, handled_at, served_at)) as avg_process_time')
+                ->value('avg_process_time');
+
+            // Temps total moyen (création -> service)
+            $avgTotalTime = $this->queue->tickets()
+                ->where('status', 'served')
+                ->whereNotNull('served_at')
+                ->selectRaw('AVG(TIMESTAMPDIFF(SECOND, created_at, served_at)) as avg_total_time')
+                ->value('avg_total_time');
+
+            return [
+                'total_tickets' => $this->queue->tickets()->count(),
+                'active_tickets' => $this->queue->tickets()->whereIn('status', ['waiting', 'in_progress'])->count(),
+                'waiting_tickets' => $this->queue->tickets()->where('status', 'waiting')->count(),
+                'in_progress_tickets' => $this->queue->tickets()->where('status', 'in_progress')->count(),
+                'served_tickets' => $this->queue->tickets()->where('status', 'served')->count(),
+                'skipped_tickets' => $this->queue->tickets()->where('status', 'skipped')->count(),
+                'average_wait_time' => $avgWaitTime,
+                'average_processing_time' => $avgProcessingTime,
+                'average_total_time' => $avgTotalTime,
+                'processed_tickets' => [
+                    'total' => $this->queue->tickets()->whereIn('status', ['served', 'skipped'])->count(),
+                    'served' => $this->queue->tickets()->where('status', 'served')->count(),
+                    'skipped' => $this->queue->tickets()->where('status', 'skipped')->count(),
+                ]
+            ];
+        });
             
         return view('livewire.admin.queue-tickets', [
             'tickets' => $query->paginate(10),
-            'stats' => $this->stats,
+            'stats' => $stats,
+            'currentUser' => $user,
         ]);
     }
 }

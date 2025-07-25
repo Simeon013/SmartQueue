@@ -9,10 +9,23 @@
             <p>Numéro: <span class="font-semibold">{{ $ticket->number }}</span></p>
             <p>Statut: <span class="font-semibold">{{ ucfirst($ticket->status) }}</span></p>
 
-            @if ($ticket->status === 'waiting' && $position !== null)
-                <p>Position dans la file: <span class="font-semibold">{{ $position }}</span></p>
-            @elseif ($ticket->status === 'called')
-                 <p class="font-semibold text-green-800">Vous êtes appelé ! Rendez-vous au guichet.</p>
+            @if ($ticket->status === 'waiting')
+                <div class="mt-2 space-y-1">
+                    <p>Position dans la file: <span class="font-semibold">{{ $position }}</span></p>
+                    @if($estimatedWaitTime !== '--:--')
+                        <p>Temps d'attente estimé: <span class="font-semibold">{{ $estimatedWaitTime }}</span></p>
+                    @endif
+                    @if($actualWaitTime !== '--:--')
+                        <p>Temps d'attente réel: <span class="font-semibold">{{ $actualWaitTime }}</span></p>
+                    @endif
+                </div>
+            @elseif ($ticket->status === 'in_progress')
+                <div class="mt-2 space-y-1">
+                    <p class="font-semibold text-green-800">Votre ticket est en cours de traitement</p>
+                    @if($actualWaitTime !== '--:--')
+                        <p>Temps d'attente: <span class="font-semibold">{{ $actualWaitTime }}</span></p>
+                    @endif
+                </div>
             @endif
 
             {{-- Bouton pour annuler le ticket (optionnel pour MVP, peut être ajouté plus tard) --}}

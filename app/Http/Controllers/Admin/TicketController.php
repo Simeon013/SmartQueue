@@ -110,21 +110,32 @@ class TicketController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:waiting,called,served,skipped',
+            'status' => 'required|in:waiting,in_progress,served,skipped',
             'wants_notifications' => 'boolean',
             'notification_channel' => 'required_if:wants_notifications,true|in:email,sms',
         ]);
 
-        $ticket->update($validated);
-
-        if ($validated['status'] === 'called' && !$ticket->called_at) {
-            $ticket->update(['called_at' => now()]);
-        } elseif ($validated['status'] === 'served' && !$ticket->served_at) {
-            $ticket->update(['served_at' => now()]);
+        $user = Auth::user();
+        $status = $validated['status'];
+        
+        // Mise à jour du statut avec gestion multi-agents
+        if ($status === 'in_progress') {
+            if ($ticket->is_being_handled && !$ticket->isHandledBy($user)) {
+                return back()->with('error', 'Ce ticket est déjà en cours de traitement par un autre agent.');
+            }
+            
+            $ticket->assignTo($user);
+        } elseif ($status === 'served') {
+            $ticket->markAsServed();
+        } elseif ($status === 'skipped') {
+            $ticket->markAsSkipped();
+        } else {
+            // Remise en attente
+            $ticket->release();
         }
 
         return redirect()->route('admin.queues.tickets.index', $queue)
-            ->with('success', 'Ticket mis à jour avec succès.');
+            ->with('success', 'Statut du ticket mis à jour avec succès.');
     }
 
     /**
@@ -159,16 +170,34 @@ class TicketController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:waiting,called,served,skipped',
+            'status' => 'required|in:waiting,in_progress,served,skipped',
         ]);
 
-        $ticket->update($validated);
+        $user = Auth::user();
+        $status = $validated['status'];
+        
+        // Mise à jour du statut avec gestion multi-agents
+        if ($status === 'in_progress') {
+            if ($ticket->is_being_handled && !$ticket->isHandledBy($user)) {
+                return back()->with('error', 'Ce ticket est déjà en cours de traitement par un autre agent.');
+            }
+            
+            $ticket->assignTo($user);
+        } elseif ($status === 'served') {
+            $ticket->markAsServed();
+        } elseif ($status === 'skipped') {
+            $ticket->markAsSkipped();
+        } else {
+            // Remise en attente
+            $ticket->release();
+        }
 
-        // Mettre à jour les timestamps si nécessaire
-        if ($validated['status'] === 'called' && !$ticket->called_at) {
-            $ticket->update(['called_at' => now()]);
-        } elseif ($validated['status'] === 'served' && !$ticket->served_at) {
-            $ticket->update(['served_at' => now()]);
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Statut du ticket mis à jour avec succès.',
+                'ticket' => $ticket->fresh()
+            ]);
         }
 
         return redirect()->route('admin.queues.tickets.index', $queue)

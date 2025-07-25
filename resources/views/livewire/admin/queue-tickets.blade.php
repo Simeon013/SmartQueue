@@ -222,10 +222,10 @@
                                     <p class="text-sm font-medium text-gray-900 truncate">
                                         Ticket #{{ $this->currentTicket->code_ticket }}
                                     </p>
-                                    @if($this->currentTicket->called_at)
+                                    @if($this->currentTicket->handled_at)
                                         <p class="mt-1 text-sm text-gray-500">
                                             <i class="mr-1 far fa-clock"></i>
-                                            Appelé il y a {{ $this->currentTicket->called_at->diffForHumans(null, true) }}
+                                            Appelé il y a {{ $this->currentTicket->handled_at->diffForHumans(null, true) }}
                                         </p>
                                     @else
                                         <p class="mt-1 text-sm text-gray-500">
@@ -241,20 +241,20 @@
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
                             @if($this->currentTicket->status === 'waiting')
                                 <button
-                                    wire:click="quickAction('call')"
+                                    wire:click="quickAction('take')"
                                     class="inline-flex justify-center items-center px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     wire:loading.attr="disabled"
                                     wire:loading.class="opacity-75 cursor-not-allowed"
                                 >
-                                    <i class="mr-2 fas fa-bell"></i>
-                                    <span>Appeler ce ticket</span>
-                                    <span wire:loading wire:target="quickAction('call')" class="ml-2">
+                                    <i class="mr-2 fas fa-hand-paper"></i>
+                                    <span>Prendre en charge</span>
+                                    <span wire:loading wire:target="quickAction('take')" class="ml-2">
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </span>
                                 </button>
                             @endif
 
-                            @if($this->currentTicket->status === 'called')
+                            @if($this->currentTicket->status === 'in_progress' && $this->currentTicket->isHandledBy(auth()->user()))
                                 <div class="flex flex-col gap-3 w-full sm:flex-row">
                                     <button
                                         wire:click="quickAction('validate')"
@@ -281,6 +281,32 @@
                                             <i class="fas fa-spinner fa-spin"></i>
                                         </span>
                                     </button>
+
+                                    <button
+                                        wire:click="quickAction('release')"
+                                        class="inline-flex flex-1 justify-center items-center px-4 py-2.5 text-sm font-medium text-white bg-gray-600 rounded-md shadow-sm transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                                        wire:loading.attr="disabled"
+                                        wire:loading.class="opacity-75 cursor-not-allowed"
+                                    >
+                                        <i class="mr-2 fas fa-undo"></i>
+                                        <span>Libérer le ticket</span>
+                                        <span wire:loading wire:target="quickAction('release')" class="ml-2">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                        </span>
+                                    </button>
+                                </div>
+                            @elseif($this->currentTicket->status === 'in_progress')
+                                <div class="p-3 bg-yellow-50 border-l-4 border-yellow-400">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <i class="text-yellow-400 fas fa-user-clock"></i>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm text-yellow-700">
+                                                Ce ticket est en cours de traitement par <span class="font-medium">{{ $this->currentTicket->handler->name ?? 'un autre agent' }}</span>.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             @endif
                         </div>
@@ -354,6 +380,9 @@
                                     </span>
                                 </div>
                             </th>
+                            <th scope="col" class="px-6 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">
+                                Assigné à
+                            </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -377,6 +406,8 @@
                                     $statusConfig = [
                                         'waiting' => ['label' => 'En attente', 'icon' => 'clock', 'color' => 'yellow'],
                                         'called' => ['label' => 'Appelé', 'icon' => 'bell', 'color' => 'blue'],
+                                        'handled' => ['label' => 'Assigné', 'icon' => 'user-clock', 'color' => 'blue'],
+                                        'in_progress' => ['label' => 'En cours de traitement', 'icon' => 'user-clock', 'color' => 'blue'],
                                         'served' => ['label' => 'Servi', 'icon' => 'check-circle', 'color' => 'green'],
                                         'skipped' => ['label' => 'Passé', 'icon' => 'forward', 'color' => 'gray'],
                                     ][$ticket->status] ?? ['label' => $ticket->status, 'icon' => 'question-circle', 'color' => 'gray'];
@@ -398,6 +429,30 @@
                                 <div class="text-xs text-gray-500">
                                     il y a {{ $ticket->created_at->diffForHumans(null, true) }}
                                 </div>
+                            </td>
+
+                            <!-- Assigné à -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                @if($ticket->status === 'in_progress' && $ticket->handler)
+                                    <div class="flex items-center">
+                                        <div class="flex flex-shrink-0 justify-center items-center w-8 h-8 bg-blue-100 rounded-full">
+                                            <span class="text-sm font-medium text-blue-800">{{ substr($ticket->handler->name, 0, 1) }}</span>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-gray-900">{{ $ticket->handler->name }}</p>
+                                            <p class="text-xs text-gray-500">
+                                                {{ $ticket->handled_at->diffForHumans() }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                @elseif($ticket->status === 'in_progress')
+                                    <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full">
+                                        <i class="mr-1.5 fas fa-user-clock"></i>
+                                        En cours
+                                    </span>
+                                @else
+                                    <span class="text-sm text-gray-500">-</span>
+                                @endif
                             </td>
                         </tr>
                         @empty
