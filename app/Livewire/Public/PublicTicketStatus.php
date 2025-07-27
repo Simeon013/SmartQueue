@@ -33,7 +33,7 @@ class PublicTicketStatus extends Component
 
         $this->ticket = $this->queue->tickets()
             ->where('session_id', $sessionId)
-            ->whereIn('status', ['waiting', 'in_progress'])
+            ->whereIn('status', ['waiting', 'in_progress', 'paused'])
             ->with('handler')
             ->first();
             

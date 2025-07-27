@@ -410,6 +410,7 @@
                                         'in_progress' => ['label' => 'En cours de traitement', 'icon' => 'user-clock', 'color' => 'blue'],
                                         'served' => ['label' => 'Servi', 'icon' => 'check-circle', 'color' => 'green'],
                                         'skipped' => ['label' => 'Passé', 'icon' => 'forward', 'color' => 'gray'],
+                                        'cancelled' => ['label' => 'Annulé', 'icon' => 'times-circle', 'color' => 'red'],
                                     ][$ticket->status] ?? ['label' => $ticket->status, 'icon' => 'question-circle', 'color' => 'gray'];
                                 @endphp
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ $statusConfig['color'] }}-100 text-{{ $statusConfig['color'] }}-800">

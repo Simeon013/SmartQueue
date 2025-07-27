@@ -139,23 +139,28 @@ class TicketController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Marque le ticket comme annulé au lieu de le supprimer.
      */
     public function destroy(Queue $queue, Ticket $ticket)
     {
-        // Vérifier les permissions pour supprimer des tickets dans cette file d'attente
+        // Vérifier les permissions pour gérer les tickets dans cette file d'attente
         if (!Auth::user()->can('manage_tickets', $queue)) {
-            abort(403, 'Vous n\'avez pas la permission de supprimer des tickets dans cette file d\'attente.');
+            abort(403, 'Vous n\'avez pas la permission de gérer les tickets dans cette file d\'attente.');
         }
 
         if ($ticket->queue_id !== $queue->id) {
             abort(404);
         }
 
-        $ticket->delete();
+        // Marquer le ticket comme annulé au lieu de le supprimer
+        $ticket->update([
+            'status' => 'cancelled',
+            'handled_at' => now(),
+            'handled_by' => Auth::id()
+        ]);
 
         return redirect()->route('admin.queues.tickets.index', $queue)
-            ->with('success', 'Ticket supprimé avec succès.');
+            ->with('success', 'Le ticket a été marqué comme annulé avec succès.');
     }
 
     public function updateStatus(Request $request, Queue $queue, Ticket $ticket)

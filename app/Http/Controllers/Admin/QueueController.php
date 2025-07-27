@@ -428,19 +428,19 @@ class QueueController extends Controller
 
     public function destroyTicket(Queue $queue, Ticket $ticket)
     {
-        // Vérifier les permissions pour supprimer des tickets de cette file d'attente
-        if (!$queue->userCanOperate(auth()->user()) && !auth()->user()->isSuperAdmin()) {
-            abort(403, 'Vous n\'avez pas la permission de supprimer des tickets de cette file d\'attente.');
-        }
-
         if ($ticket->queue_id !== $queue->id) {
             abort(404);
         }
 
-        $ticket->delete();
+        // Marquer le ticket comme annulé au lieu de le supprimer
+        $ticket->update([
+            'status' => 'cancelled',
+            'handled_at' => now(),
+            'handled_by' => Auth::id()
+        ]);
 
         return redirect()->route('admin.queues.show', $queue)
-            ->with('success', 'Ticket supprimé avec succès.');
+            ->with('success', 'Le ticket a été marqué comme annulé avec succès.');
     }
 
     public function updateTicketStatus(Request $request, Queue $queue, Ticket $ticket)

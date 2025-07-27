@@ -13,8 +13,8 @@ class RealtimeTicketStatus extends Component
 {
     use FormatsDuration;
 
-    public $ticket;
-    public $queue;
+    public Ticket $ticket;
+    public Queue $queue;
     public $position = 0;
     public $estimatedWaitTime = '--:--';
     public $actualWaitTime = '--:--';
@@ -37,97 +37,150 @@ class RealtimeTicketStatus extends Component
 
     private function updateTicketData()
     {
-        $sessionId = Session::getId();
-
-        // Récupérer le ticket avec les relations nécessaires
-        $ticket = $this->queue->tickets()
-            ->where('session_id', $sessionId)
-            ->whereIn('status', ['waiting', 'in_progress'])
-            ->with('handler')
-            ->first();
-
-        if ($ticket) {
-            $this->ticket = $ticket;
+        try {
+            // Rafraîchir le ticket depuis la base de données pour avoir les dernières données
+            $this->ticket->refresh();
+            
+            // Stocker le statut actuel du ticket dans la session
+            session(['last_ticket_status' => $this->ticket->status]);
 
             // Mettre à jour la position dans la file d'attente
-            $this->position = $ticket->position;
+            $this->position = $this->ticket->position;
 
             // Mettre à jour le temps d'attente estimé
-            if ($ticket->status === 'waiting' && $ticket->estimated_wait_time) {
-                $this->estimatedWaitTime = $this->formatDuration($ticket->estimated_wait_time);
+            if ($this->ticket->status === 'waiting' && $this->ticket->estimated_wait_time) {
+                $this->estimatedWaitTime = $this->formatDuration($this->ticket->estimated_wait_time);
             } else {
                 $this->estimatedWaitTime = '--:--';
             }
 
             // Mettre à jour le temps d'attente réel
-            if ($ticket->actual_wait_time) {
-                $this->actualWaitTime = $this->formatDuration($ticket->actual_wait_time);
+            if ($this->ticket->actual_wait_time) {
+                $this->actualWaitTime = $this->formatDuration($this->ticket->actual_wait_time);
             } else {
                 $this->actualWaitTime = '--:--';
             }
 
             // Mettre à jour le temps de traitement si le ticket est en cours
-            if ($ticket->status === 'in_progress' && $ticket->processing_time) {
-                $this->processingTime = $this->formatDuration($ticket->processing_time);
+            if ($this->ticket->status === 'in_progress' && $this->ticket->processing_time) {
+                $this->processingTime = $this->formatDuration($this->ticket->processing_time);
             } else {
                 $this->processingTime = '--:--';
             }
-        } else {
-            $this->ticket = null;
+
+            // Récupérer le ticket actuellement en cours de traitement
+            $this->currentServingTicketCode = 'Aucun ticket en cours de traitement';
+            $currentServingTicket = $this->queue->tickets()
+                ->where('id', $this->ticket->id)
+                ->where('status', 'in_progress')
+                ->first();
+
+            if ($currentServingTicket) {
+                $this->currentServingTicketCode = $currentServingTicket->code_ticket;
+            }
+
+            $this->waitingTicketsCount = $this->queue->tickets()
+                ->where('status', 'waiting')
+                ->count();
+                
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la mise à jour des données du ticket', [
+                'ticket_id' => $this->ticket->id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Réinitialiser les valeurs en cas d'erreur
             $this->position = 0;
             $this->estimatedWaitTime = '--:--';
             $this->actualWaitTime = '--:--';
             $this->processingTime = '--:--';
+            $this->currentServingTicketCode = 'Erreur de chargement';
+            $this->waitingTicketsCount = 0;
         }
-
-        // Récupérer le ticket actuellement en cours de traitement par l'utilisateur
-        $currentServingTicket = $this->queue->tickets()
-            ->where('id', $this->ticket->id)
-            ->where('status', 'in_progress')
-            ->first();
-
-        $this->currentServingTicketCode = $currentServingTicket ? $currentServingTicket->code_ticket : 'Aucun ticket en cours de traitement';
-
-        $this->waitingTicketsCount = $this->queue->tickets()
-            ->where('status', 'waiting')
-            ->count();
     }
 
     public function pauseTicket()
     {
-        // Ensure the ticket belongs to the current session for security
-        if ($this->ticket->session_id !== session()->getId()) {
-            abort(403, 'Accès non autorisé pour mettre en pause ce ticket.');
-        }
+        try {
+            // Vérifier que le ticket appartient à la session en cours pour des raisons de sécurité
+            if ($this->ticket->session_id !== session()->getId()) {
+                abort(403, 'Accès non autorisé pour mettre en pause ce ticket.');
+            }
 
-        // Update the ticket status to 'paused'
-        $this->ticket->update(['status' => 'paused']);
-        $this->updateTicketData(); // Refresh component data
-        session()->flash('success', 'Votre ticket a été mis en pause momentanément.');
+            // Mettre à jour le statut du ticket
+            $this->ticket->update(['status' => 'paused']);
+            $this->updateTicketData(); // Rafraîchir les données du composant
+            
+            session()->flash('success', 'Votre ticket a été mis en pause momentanément.');
+            return redirect()->route('public.ticket.status', [
+                'queue_code' => $this->queue->code, 
+                'ticket_code' => $this->ticket->code_ticket
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la mise en pause du ticket', [
+                'ticket_id' => $this->ticket->id ?? null,
+                'error' => $e->getMessage()
+            ]);
+            
+            session()->flash('error', 'Une erreur est survenue lors de la mise en pause du ticket.');
+        }
     }
 
     public function resumeTicket()
     {
-        // Ensure the ticket belongs to the current session for security
-        if ($this->ticket->session_id !== session()->getId()) {
-            abort(403, 'Accès non autorisé pour reprendre ce ticket.');
-        }
+        try {
+            // Vérifier que le ticket appartient à la session en cours pour des raisons de sécurité
+            if ($this->ticket->session_id !== session()->getId()) {
+                abort(403, 'Accès non autorisé pour reprendre ce ticket.');
+            }
 
-        // Update the ticket status to 'waiting'
-        $this->ticket->update(['status' => 'waiting']);
-        $this->updateTicketData(); // Refresh component data
-        session()->flash('success', 'Votre ticket est de nouveau actif dans la file.');
+            // Mettre à jour le statut du ticket
+            $this->ticket->update(['status' => 'waiting']);
+            $this->updateTicketData(); // Rafraîchir les données du composant
+            
+            session()->flash('success', 'Votre ticket est de nouveau actif dans la file.');
+            return redirect()->route('public.ticket.status', [
+                'queue_code' => $this->queue->code, 
+                'ticket_code' => $this->ticket->code_ticket
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la reprise du ticket', [
+                'ticket_id' => $this->ticket->id ?? null,
+                'error' => $e->getMessage()
+            ]);
+            
+            session()->flash('error', 'Une erreur est survenue lors de la reprise du ticket.');
+        }
     }
 
     public function cancelTicket()
     {
-        // Ensure the ticket belongs to the current session for security
-        if ($this->ticket->session_id !== session()->getId()) {
-            abort(403, 'Accès non autorisé pour annuler ce ticket.');
-        }
+        try {
+            // Vérifier que le ticket appartient à la session en cours pour des raisons de sécurité
+            if ($this->ticket->session_id !== session()->getId()) {
+                abort(403, 'Accès non autorisé pour annuler ce ticket.');
+            }
 
-        $this->ticket->delete();
-        session()->flash('success', 'Votre ticket a été annulé avec succès.');
-        return redirect()->route('public.queues.index'); // Redirect after delete
+            // Marquer le ticket comme annulé au lieu de le supprimer
+            $this->ticket->update([
+                'status' => 'cancelled',
+                'handled_at' => now()
+            ]);
+            
+            session()->flash('success', 'Votre ticket a été annulé avec succès.');
+            return redirect()->route('public.queues.index');
+            
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'annulation du ticket', [
+                'ticket_id' => $this->ticket->id ?? null,
+                'error' => $e->getMessage()
+            ]);
+            
+            session()->flash('error', 'Une erreur est survenue lors de l\'annulation du ticket.');
+            return back();
+        }
     }
 }

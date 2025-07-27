@@ -16,10 +16,10 @@ class QueueController extends Controller
     {
         // Vérifier si la file est accessible
         if ($queue->status->value === 'closed' || $queue->status->value === 'blocked') {
-            $statusMessage = $queue->status->value === 'closed' 
+            $statusMessage = $queue->status->value === 'closed'
                 ? 'Cette file d\'attente est actuellement fermée.'
                 : 'Cette file d\'attente est actuellement bloquée.';
-                
+
             return redirect()->route('public.queues.index')
                 ->with('error', $statusMessage);
         }
@@ -48,13 +48,13 @@ class QueueController extends Controller
                 'closed' => 'Cette file d\'attente est actuellement fermée.',
                 default => 'Impossible de rejoindre cette file d\'attente pour le moment.'
             };
-            
+
             Log::info('Tentative de rejoindre une file non ouverte', [
                 'queue_id' => $queue->id,
                 'status' => $queue->status->value,
                 'error' => $errorMessage
             ]);
-            
+
             return redirect()
                 ->back()
                 ->with('error', $errorMessage);
@@ -74,7 +74,7 @@ class QueueController extends Controller
         // Utiliser le service de génération de codes de tickets
         $ticketService = app(\App\Services\TicketCodeService::class);
         $result = $ticketService->generateNextCode($queue);
-        
+
         $ticket = $queue->tickets()->create([
             'queue_id' => $queue->id,
             'code_ticket' => $result['code'],
@@ -90,7 +90,10 @@ class QueueController extends Controller
     public function ticketStatus($queue_code, $ticket_code)
     {
         $queue = Queue::where('code', $queue_code)->firstOrFail();
-        $ticket = Ticket::where('code_ticket', $ticket_code)->where('queue_id', $queue->id)->firstOrFail();
+        $ticket = Ticket::where('code_ticket', $ticket_code)
+            ->where('queue_id', $queue->id)
+            ->whereIn('status', ['waiting', 'in_progress', 'paused', 'cancelled', 'served', 'skipped'])
+            ->firstOrFail();
 
         if ($ticket->session_id !== session()->getId()) {
             abort(403, 'Accès non autorisé au ticket.');
@@ -101,12 +104,16 @@ class QueueController extends Controller
 
     public function cancelTicket(Ticket $ticket)
     {
-        // Ensure the ticket belongs to the current session for security
+        // Vérifier que le ticket appartient à la session en cours pour des raisons de sécurité
         if ($ticket->session_id !== session()->getId()) {
             abort(403, 'Accès non autorisé pour annuler ce ticket.');
         }
 
-        $ticket->delete();
+        // Marquer le ticket comme annulé au lieu de le supprimer
+        $ticket->update([
+            'status' => 'cancelled',
+            'handled_at' => now()
+        ]);
 
         return redirect()->route('public.queues.index')
             ->with('success', 'Votre ticket a été annulé avec succès.');
