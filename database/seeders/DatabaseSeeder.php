@@ -44,5 +44,8 @@ class DatabaseSeeder extends Seeder
         if ($adminUser && $adminRole) {
             $adminUser->assignRole($adminRole);
         }
+        
+        // Créer le service par défaut
+        $this->call(DefaultServiceSeeder::class);
     }
 }

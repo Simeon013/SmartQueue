@@ -200,15 +200,13 @@ class QueueController extends Controller
 
     public function create()
     {
-        // $user = Auth::user();
-
-        // // N'importe quel utilisateur connecté peut créer une file
-        // if (!$user) {
-        //     abort(403, 'Vous devez être connecté pour créer une file d\'attente.');
-        // }
-
         $establishment = \App\Models\Establishment::first();
-        return view('admin.queues.create', compact('establishment'));
+        $services = \App\Models\Service::where('is_active', true)
+            ->orderBy('position')
+            ->orderBy('name')
+            ->get();
+            
+        return view('admin.queues.create', compact('establishment', 'services'));
     }
 
     public function store(Request $request)
@@ -216,18 +214,30 @@ class QueueController extends Controller
         $user = auth()->user();
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            // 'establishment_id' => 'required|exists:establishments,id',
-            // Le statut est forcé à 'open' à la création
+            'service_id' => 'required|exists:services,id',
+            // Le nom est généré automatiquement maintenant
         ]);
 
-        $validated['code'] = \Illuminate\Support\Str::random(6);
-        $validated['status'] = QueueStatus::OPEN->value; // Toujours 'open' à la création
-        $validated['establishment_id'] = \App\Models\Establishment::first()->id;
-        $validated['created_by'] = $user->id; // Définir l'utilisateur actuel comme créateur
+        // Récupérer le service sélectionné
+        $service = \App\Models\Service::findOrFail($validated['service_id']);
+        
+        // Générer le nom automatiquement
+        $date = now()->format('Y-m-d');
+        $time = now()->format('H:i');
+        $queueName = "{$service->name} - {$date} {$time}";
+
+        // Préparer les données pour la création
+        $queueData = [
+            'name' => $queueName,
+            'service_id' => $service->id,
+            'code' => \Illuminate\Support\Str::random(6),
+            'status' => QueueStatus::OPEN->value,
+            'establishment_id' => \App\Models\Establishment::first()->id,
+            'created_by' => $user->id,
+        ];
 
         // Créer la file
-        $queue = Queue::create($validated);
+        $queue = Queue::create($queueData);
 
         // Donner les droits de propriétaire à l'utilisateur qui a créé la file
         if ($user) {

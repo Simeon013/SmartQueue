@@ -14,13 +14,23 @@
             </div>
 
             <div>
-                <label for="name" class="block text-sm font-medium text-gray-700">Nom de la file</label>
-                <input type="text" id="name" name="name" value="{{ old('name') }}" required
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('name') border-red-300 @enderror">
-                @error('name')
+                <label for="service_id" class="block text-sm font-medium text-gray-700">Service</label>
+                <select id="service_id" name="service_id" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 @error('service_id') border-red-300 @enderror">
+                    <option value="">Sélectionnez un service</option>
+                    @foreach($services as $service)
+                        <option value="{{ $service->id }}" {{ old('service_id') == $service->id ? 'selected' : '' }}>
+                            {{ $service->name }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('service_id')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
+            
+            <!-- Champ caché pour le nom généré automatiquement -->
+            <input type="hidden" name="name" id="name" value="">
 
             <!-- Le statut est défini comme ouvert par défaut -->
             <input type="hidden" name="status" value="open">
@@ -30,7 +40,10 @@
                     <svg class="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Nouvelle file d'attente créée avec le statut <span class="ml-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Ouverte</span>
+                    Le nom de la file sera généré automatiquement avec le format : <span class="font-medium">[Nom du Service] - [Date] [Heure]</span>
+                </p>
+                <p class="mt-2 text-sm text-blue-700">
+                    Statut : <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Ouverte</span>
                 </p>
             </div>
 

@@ -14,6 +14,7 @@ class Queue extends Model
     protected $fillable = [
         'name',
         'establishment_id',
+        'service_id',
         'status',
         'created_by'
     ];
@@ -44,6 +45,14 @@ class Queue extends Model
     public function tickets()
     {
         return $this->hasMany(Ticket::class);
+    }
+    
+    /**
+     * Get the service associated with the queue.
+     */
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
     }
 
     public function events()
