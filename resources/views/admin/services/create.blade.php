@@ -38,20 +38,8 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label for="icon" class="block text-sm font-medium text-gray-700 mb-1">Icône</label>
-                    <div class="mt-1 flex rounded-md shadow-sm">
-                        <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                            <i id="icon-preview" class="fas fa-gear"></i>
-                        </span>
-                        <input type="text" name="icon" id="icon" value="{{ old('icon', 'fas fa-gear') }}" 
-                               class="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-none rounded-r-md sm:text-sm border-gray-300"
-                               placeholder="Ex: fas fa-user">
-                    </div>
-                    <p class="mt-2 text-sm text-gray-500">
-                        Utilisez les icônes de <a href="https://fontawesome.com/icons" target="_blank" class="text-blue-600 hover:text-blue-800">Font Awesome</a> (ex: fas fa-user)
-                    </p>
-                </div>
+                <x-icon-picker name="icon" value="{{ old('icon', 'fas fa-cog') }}" />
+                
 
                 <div>
                     <label for="color" class="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
@@ -89,15 +77,6 @@
     </div>
 </div>
 
-@push('scripts')
-<script>
-    // Mise à jour de l'aperçu de l'icône
-    document.getElementById('icon').addEventListener('input', function() {
-        const iconPreview = document.getElementById('icon-preview');
-        const classes = this.value.split(' ');
-        iconPreview.className = classes.join(' ');
-    });
-</script>
-@endpush
+
 
 @endsection
