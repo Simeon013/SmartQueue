@@ -111,6 +111,25 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if the user has a specific role.
+     * 
+     * @param UserRole|string $role The role to check, can be a UserRole enum or a string
+     * @return bool True if the user has the role, false otherwise
+     */
+    public function hasRole($role): bool
+    {
+        if (is_string($role)) {
+            return $this->getRole()->value === $role;
+        }
+        
+        if ($role instanceof UserRole) {
+            return $this->getRole() === $role;
+        }
+        
+        return false;
+    }
+    
+    /**
      * Check if the user is a super admin.
      */
     public function isSuperAdmin(): bool
@@ -151,21 +170,7 @@ class User extends Authenticatable
         ]);
     }
     
-    /**
-     * Vérifie si l'utilisateur a un rôle spécifique (compatibilité)
-     */
-    public function hasRole($role): bool
-    {
-        if (is_string($role)) {
-            return $this->getRole()->value === $role;
-        }
-        
-        if ($role instanceof UserRole) {
-            return $this->getRole() === $role;
-        }
-        
-        return false;
-    }
+    // La méthode hasRole a été fusionnée avec la version plus complète ci-dessus
 
     /**
      * Get all queues where the user has any permission.

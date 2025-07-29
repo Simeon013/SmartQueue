@@ -61,6 +61,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 // Les autres routes admin restent protégées
 // Routes administratives globales (nécessitent d'être admin)
 Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
+    // Routes pour la gestion des services
+    Route::resource('services', \App\Http\Controllers\Admin\ServiceController::class)->except(['show']);
+    Route::patch('services/{service}/toggle-status', [\App\Http\Controllers\Admin\ServiceController::class, 'toggleStatus'])->name('services.toggle-status');
+    Route::post('services/update-order', [\App\Http\Controllers\Admin\ServiceController::class, 'updateOrder'])->name('services.update-order');
 
     // Routes pour les tickets dans les files d'attente
     Route::prefix('queues/{queue}/tickets')->name('queues.tickets.')->group(function () {
@@ -77,9 +81,11 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix
     Route::put('settings/establishment', [EstablishmentController::class, 'updateSettings'])->name('establishment.settings.update');
     Route::resource('establishments', EstablishmentController::class)->except(['show']);
 
-    // Route pour la page paramètres générale
-    Route::get('settings', [SettingsController::class, 'index'])->name('settings');
-    Route::post('settings/auto-close', [SettingsController::class, 'updateAutoClose'])->name('settings.auto-close');
+    // Route pour la page paramètres générale (accès restreint aux super admins)
+    Route::middleware([\App\Http\Middleware\SuperAdminMiddleware::class])->group(function () {
+        Route::get('settings', [SettingsController::class, 'index'])->name('settings');
+        Route::post('settings/auto-close', [SettingsController::class, 'updateAutoClose'])->name('settings.auto-close');
+    });
 
     // Routes pour la gestion des utilisateurs
     Route::resource('users', \App\Http\Controllers\Admin\UserController::class);
