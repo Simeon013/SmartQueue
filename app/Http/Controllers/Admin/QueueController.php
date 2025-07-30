@@ -221,8 +221,8 @@ class QueueController extends Controller
         // Récupérer le service sélectionné
         $service = \App\Models\Service::findOrFail($validated['service_id']);
         
-        // Générer le nom automatiquement
-        $date = now()->format('Y-m-d');
+        // Générer le nom automatiquement avec le format JJ-MM-AAAA HH:MM
+        $date = now()->format('d-m-Y');
         $time = now()->format('H:i');
         $queueName = "{$service->name} - {$date} {$time}";
 
