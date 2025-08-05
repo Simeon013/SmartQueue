@@ -14,8 +14,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Create 5 random establishments
-        \App\Models\Establishment::factory(5)->create();
-        
+        \App\Models\Establishment::factory(1)->create();
+
         // \App\Models\User::factory(10)->create();
 
         // \App\Models\User::factory()->create([
@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
         if ($adminUser && $adminRole) {
             $adminUser->assignRole($adminRole);
         }
-        
+
         // Créer le service par défaut
         $this->call(DefaultServiceSeeder::class);
     }
