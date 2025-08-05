@@ -69,7 +69,7 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix
     // Routes pour les tickets dans les files d'attente
     Route::prefix('queues/{queue}/tickets')->name('queues.tickets.')->group(function () {
         Route::get('/', QueueTickets::class)->name('index');
-        Route::get('/history', QueueTicketsHistory::class)->name('history');
+        Route::get('/history', [\App\Http\Controllers\Admin\QueueController::class, 'ticketHistory'])->name('history');
         Route::post('/', [QueueTickets::class, 'store'])->name('store');
         Route::delete('/{ticket}', [QueueTickets::class, 'destroy'])->name('destroy');
         Route::patch('/{ticket}/status', [QueueTickets::class, 'updateStatus'])->name('status');

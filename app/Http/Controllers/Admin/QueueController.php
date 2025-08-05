@@ -13,6 +13,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Establishment;
 use App\Enums\QueueStatus;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -660,5 +661,135 @@ class QueueController extends Controller
 
         return redirect()->back()
             ->with('info', 'Aucun ticket en attente à annuler.');
+    }
+
+    /**
+     * Affiche l'historique des tickets d'une file d'attente
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Models\Queue  $queue
+     * @return \Illuminate\View\View
+     */
+    public function ticketHistory(Request $request, Queue $queue)
+    {
+        $user = Auth::user();
+        
+        // Vérifier que l'utilisateur est authentifié
+        if (!$user) {
+            abort(403, 'Vous devez être connecté pour accéder à cette page.');
+        }
+        
+        // Vérifier les permissions en utilisant la méthode du contrôleur
+        if (!$this->userCanAccessQueue($user, $queue)) {
+            abort(403, 'Vous n\'avez pas la permission de voir l\'historique de cette file d\'attente.');
+        }
+
+        // Initialisation de la requête
+        $query = $queue->tickets()->with(['handler']);
+
+        // Filtrage par statut
+        if ($request->filled('status') && in_array($request->status, ['waiting', 'in_progress', 'served', 'skipped', 'cancelled', 'paused'])) {
+            $query->where('status', $request->status);
+        }
+
+        // Filtrage par date
+        if ($request->filled('date')) {
+            try {
+                $date = Carbon::parse($request->date)->toDateString();
+                $query->whereDate('created_at', $date);
+            } catch (\Exception $e) {
+                // En cas d'erreur de format de date, on ignore le filtre
+            }
+        }
+
+        // Recherche par numéro de ticket ou code
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('code_ticket', 'like', "%{$search}%")
+                  ->orWhere('number', 'like', "%{$search}%");
+            });
+        }
+
+        // Tri
+        $sortField = $request->input('sort', 'created_at');
+        $sortDirection = $request->input('direction', 'desc');
+        
+        // Vérifier que le champ de tri est valide pour éviter les injections SQL
+        $validSortFields = ['code_ticket', 'number', 'status', 'created_at', 'called_at', 'served_at', 'handled_by'];
+        $sortField = in_array($sortField, $validSortFields) ? $sortField : 'created_at';
+        $sortDirection = in_array(strtolower($sortDirection), ['asc', 'desc']) ? $sortDirection : 'desc';
+        
+        $query->orderBy($sortField, $sortDirection);
+
+        // Pagination
+        $tickets = $query->paginate(15)->withQueryString();
+
+        // Calcul des statistiques
+        $statsQuery = $queue->tickets();
+        
+        // Appliquer les mêmes filtres que pour la requête principale
+        if ($request->filled('status')) {
+            $statsQuery->where('status', $request->status);
+        }
+        if ($request->filled('date')) {
+            try {
+                $date = Carbon::parse($request->date)->toDateString();
+                $statsQuery->whereDate('created_at', $date);
+            } catch (\Exception $e) {
+                // Ignorer les erreurs de format de date
+            }
+        }
+        
+        $allTickets = $statsQuery->get();
+        
+        $stats = [
+            'total' => $allTickets->count(),
+            'waiting' => $allTickets->where('status', 'waiting')->count(),
+            'in_progress' => $allTickets->where('status', 'in_progress')->count(),
+            'served' => $allTickets->where('status', 'served')->count(),
+            'skipped' => $allTickets->where('status', 'skipped')->count(),
+            'cancelled' => $allTickets->where('status', 'cancelled')->count(),
+            'paused' => $allTickets->where('status', 'paused')->count(),
+            'avg_processing_time' => $this->calculateAverageProcessingTime($allTickets)
+        ];
+
+        return view('admin.queues.tickets.history', [
+            'queue' => $queue,
+            'tickets' => $tickets,
+            'stats' => $stats,
+            'sortField' => $sortField,
+            'sortDirection' => $sortDirection,
+            'filters' => $request->only(['status', 'date', 'search'])
+        ]);
+    }
+    
+    /**
+     * Calcule le temps moyen de traitement des tickets servis
+     *
+     * @param  \Illuminate\Database\Eloquent\Collection  $tickets
+     * @return string|null
+     */
+    protected function calculateAverageProcessingTime($tickets)
+    {
+        $processedTickets = $tickets->filter(function($ticket) {
+            return $ticket->status === 'served' && $ticket->called_at && $ticket->served_at;
+        });
+        
+        if ($processedTickets->isEmpty()) {
+            return null;
+        }
+        
+        $totalSeconds = $processedTickets->sum(function($ticket) {
+            return $ticket->called_at->diffInSeconds($ticket->served_at);
+        });
+        
+        $averageSeconds = $totalSeconds / $processedTickets->count();
+        
+        // Formater en minutes et secondes
+        $minutes = floor($averageSeconds / 60);
+        $seconds = $averageSeconds % 60;
+        
+        return sprintf('%d min %02d sec', $minutes, $seconds);
     }
 }
