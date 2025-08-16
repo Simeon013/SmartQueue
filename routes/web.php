@@ -118,6 +118,9 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix
 
 require __DIR__.'/auth.php';
 
+// Routes pour les avis clients
+require __DIR__.'/reviews.php';
+
 // Routes pour la gestion des permissions des files (accessibles aux agents avec les bonnes permissions)
 // Routes pour les actions rapides sur les files d'attente
 Route::middleware(['auth', \App\Http\Middleware\CheckQueuePermission::class . ':manage'])->prefix('admin/queues')->name('admin.queues.')->group(function () {

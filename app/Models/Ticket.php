@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 use App\Models\TicketCycle;
+use App\Models\Review;
 
 class Ticket extends Model
 {
@@ -26,7 +28,7 @@ class Ticket extends Model
         'handled_at',
     ];
     
-    protected $appends = ['position', 'estimated_wait_time', 'actual_wait_time', 'processing_time', 'is_being_handled'];
+    protected $appends = ['position', 'estimated_wait_time', 'actual_wait_time', 'processing_time', 'is_being_handled', 'has_review'];
 
     protected $casts = [
         'wants_notifications' => 'boolean',
@@ -38,6 +40,56 @@ class Ticket extends Model
     public function queue()
     {
         return $this->belongsTo(Queue::class);
+    }
+
+    /**
+     * Relation avec l'avis du ticket.
+     */
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
+    }
+
+    /**
+     * Vérifie si le ticket a un avis.
+     */
+    public function getHasReviewAttribute(): bool
+    {
+        return $this->review()->exists();
+    }
+    
+    /**
+     * Crée un nouvel avis pour ce ticket.
+     */
+    public function createReview(): Review
+    {
+        // Vérifier s'il existe déjà un avis pour ce ticket
+        if ($this->review) {
+            return $this->review;
+        }
+
+        // Créer un nouvel avis avec un token unique
+        return $this->review()->create([
+            'token' => \Illuminate\Support\Str::uuid(),
+        ]);
+    }
+    
+    /**
+     * Crée automatiquement un avis lors du traitement d'un ticket
+     * Cette méthode est appelée après la mise à jour du statut du ticket
+     */
+    protected static function booted()
+    {
+        static::updated(function ($ticket) {
+            // Vérifier si le ticket vient d'être marqué comme traité
+            if ($ticket->isDirty('status') && $ticket->status === 'traité') {
+                // Créer un avis pour ce ticket
+                $ticket->createReview();
+                
+                // Envoyer un email au client avec le lien pour donner son avis
+                // (à implémenter plus tard avec un système de notification)
+            }
+        });
     }
 
     public function user()

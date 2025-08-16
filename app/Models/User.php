@@ -113,11 +113,24 @@ class User extends Authenticatable
     /**
      * Check if the user has a specific role.
      * 
-     * @param UserRole|string $role The role to check, can be a UserRole enum or a string
+     * @param UserRole|string|array $role The role to check, can be a UserRole enum, a string or an array of roles
      * @return bool True if the user has the role, false otherwise
      */
     public function hasRole($role): bool
     {
+        // Support arrays of roles (strings or UserRole enums)
+        if (is_array($role)) {
+            foreach ($role as $r) {
+                if (is_string($r) && $this->getRole()->value === $r) {
+                    return true;
+                }
+                if ($r instanceof UserRole && $this->getRole() === $r) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         if (is_string($role)) {
             return $this->getRole()->value === $role;
         }
