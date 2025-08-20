@@ -1,0 +1,284 @@
+/* Variables CSS pour la personnalisation */
+:root {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary-color: #f8fafc;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --text-primary: #1f2937;
+    --text-secondary: #4b5563;
+    --bg-primary: #ffffff;
+    --bg-secondary: #f3f4f6;
+    --border-color: #e5e7eb;
+    
+    /* Tailles d'écran */
+    --screen-sm: 640px;
+    --screen-md: 768px;
+    --screen-lg: 1024px;
+    --screen-xl: 1280px;
+}
+
+/* Reset et styles de base */
+* {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+body {
+    /* Correction pour iOS et optimisation de la lisibilité */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Empêcher le défilement horizontal */
+    overflow-x: hidden;
+    width: 100%;
+    /* Meilleure gestion du défilement sur iOS */
+    -webkit-overflow-scrolling: touch;
+}
+
+.public-container {
+    min-height: 100vh;
+    background-color: #f9fafb;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    padding: 0;
+    margin: 0;
+}
+
+/* En-tête public */
+.public-header {
+    background-color: #ffffff;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Boutons */
+.btn-primary {
+    display: -webkit-inline-flex;
+    display: -ms-inline-flexbox;
+    display: inline-flex;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    -webkit-border-radius: 0.5rem;
+    -moz-border-radius: 0.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    color: white;
+    background-color: var(--primary-color);
+    -webkit-transition: all 0.2s ease-in-out;
+    -moz-transition: all 0.2s ease-in-out;
+    -o-transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease-in-out;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1.5;
+    width: 100%;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* Amélioration pour les appareils tactiles */
+@media (hover: none) {
+    .btn-primary:hover {
+        transform: none;
+    }
+    
+    .btn-primary:active {
+        background-color: var(--primary-hover);
+        transform: scale(0.98);
+    }
+    
+    /* Meilleur espacement pour les éléments tactiles */
+    button, a.btn, input[type="button"], input[type="submit"] {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Meilleure lisibilité sur petits écrans */
+    body {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        overflow-x: hidden;
+    }
+    
+    /* Ajustement des marges et paddings */
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* Meilleure gestion des grilles sur mobile */
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Taille de police plus grande sur mobile */
+@media (max-width: 640px) {
+    .btn-primary {
+        padding: 1rem 1.5rem;
+        font-size: 1.05rem;
+    }
+    
+    /* Ajustement de la grille pour les très petits écrans */
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Cartes */
+.public-card {
+    background-color: #ffffff;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    transition: all 0.2s ease-in-out;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+/* Amélioration du contraste pour la lisibilité */
+@media (max-width: 640px) {
+    .public-card {
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        margin: 0 1rem;
+        width: calc(100% - 2rem);
+    }
+    
+    /* Ajustements pour les petits écrans */
+    body {
+        font-size: 16px;
+    }
+    
+    /* Amélioration de la lisibilité sur mobile */
+    h1, h2, h3, h4, h5, h6 {
+        word-wrap: break-word;
+    }
+    
+    /* Meilleur espacement pour les éléments tactiles */
+    button, a, input, .btn-primary {
+        min-height: 44px;
+    }
+}
+
+/* .public-card:hover {
+    box-shadow: 0 4px 12px -1px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
+    border-color: rgba(59, 130, 246, 0.15);
+} */
+
+/* Badges d'état */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 500;
+}
+
+.status-open {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-paused {
+    background-color: #fef9c3;
+    color: #854d0e;
+}
+
+.status-closed {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Formulaire */
+.public-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    transition: all 0.2s ease-in-out;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: white;
+}
+
+.public-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+/* Amélioration de l'expérience mobile */
+@media (max-width: 640px) {
+    .public-input {
+        font-size: 1rem;
+        padding: 0.875rem 1rem;
+    }
+    
+    /* Éviter le zoom sur iOS */
+    @supports (-webkit-touch-callout: none) {
+        .public-input {
+            font-size: 16px;
+        }
+    }
+}
+
+/* Animation de chargement */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Utilitaires */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.bg-primary { background-color: var(--bg-primary); }
+.bg-secondary { background-color: var(--bg-secondary); }
+
+/* Responsive */
+@media (max-width: 640px) {
+    .public-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
