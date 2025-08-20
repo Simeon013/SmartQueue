@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Review extends Model
 {
+    use HasFactory;
+    
     /**
      * Les attributs qui sont assignables en masse.
      *
@@ -19,6 +22,22 @@ class Review extends Model
         'token',
         'submitted_at',
     ];
+    
+    /**
+     * The "booting" method of the model.
+     *
+     * @return void
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->token)) {
+                $model->token = static::generateToken();
+            }
+        });
+    }
 
     /**
      * Les attributs qui doivent être convertis.

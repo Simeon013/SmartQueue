@@ -29,6 +29,8 @@ class ReviewController extends Controller
 
     /**
      * Traite la soumission du formulaire d'avis.
+     * Cette méthode est maintenant gérée directement par le composant Livewire.
+     * Elle est conservée pour la rétrocompatibilité.
      */
     public function submit(Request $request, string $token)
     {

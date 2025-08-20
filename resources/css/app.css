@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Styles personnalisés pour les étoiles de notation */
+.star-rating {
+    direction: rtl;
+    unicode-bidi: bidi-override;
+}
+
+.star-rating input[type="radio"] {
+    display: none;
+}
+
+.star-rating label {
+    color: #e2e8f0; /* Couleur des étoiles non sélectionnées */
+    font-size: 2rem;
+    padding: 0 0.2rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input[type="radio"]:checked ~ label {
+    color: #f59e0b; /* Couleur des étoiles sélectionnées */
+}
+
+.star-rating label:before {
+    content: '★';
+}

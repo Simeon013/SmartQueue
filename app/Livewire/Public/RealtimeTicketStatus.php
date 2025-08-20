@@ -5,9 +5,11 @@ namespace App\Livewire\Public;
 use Livewire\Component;
 use App\Models\Ticket;
 use App\Models\Queue;
+use App\Models\Review;
 use App\Traits\FormatsDuration;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class RealtimeTicketStatus extends Component
 {
@@ -22,6 +24,12 @@ class RealtimeTicketStatus extends Component
     public $currentServingTicketCode;
     public $waitingTicketsCount;
 
+    // Propriétés pour le formulaire d'avis
+    public $showReviewForm = false;
+    public $rating = 0;
+    public $comment = '';
+    public $reviewSubmitted = false;
+
     public function mount(Ticket $ticket, Queue $queue)
     {
         $this->ticket = $ticket;
@@ -32,7 +40,81 @@ class RealtimeTicketStatus extends Component
     public function render()
     {
         $this->updateTicketData(); // Update data on each render (including poll)
+
+        // Vérifier si on doit afficher le formulaire d'avis
+        if ($this->ticket->status === 'served' && !$this->ticket->has_review && !$this->reviewSubmitted) {
+            $this->showReviewForm = true;
+        } else {
+            $this->showReviewForm = false;
+        }
+
         return view('livewire.public.realtime-ticket-status');
+    }
+
+    /**
+     * Soumettre un avis pour le ticket
+     */
+    public function submitReview()
+    {
+        try {
+            // Valider les données du formulaire
+            $validatedData = $this->validate([
+                'rating' => 'required|integer|min:1|max:5',
+                'comment' => 'nullable|string|max:1000',
+            ]);
+
+            // Vérifier si un avis existe déjà pour ce ticket
+            if ($this->ticket->review) {
+                // Mettre à jour l'avis existant
+                $this->ticket->review->update([
+                    'rating' => $validatedData['rating'],
+                    'comment' => $validatedData['comment'] ?? null,
+                    'submitted_at' => now(),
+                ]);
+
+                Log::info('Avis mis à jour pour le ticket #' . $this->ticket->id);
+            } else {
+                // Créer un nouvel avis via la relation
+                $review = $this->ticket->review()->create([
+                    'rating' => $validatedData['rating'],
+                    'comment' => $validatedData['comment'] ?? null,
+                    'submitted_at' => now(),
+                    'token' => \Illuminate\Support\Str::uuid(), // Ajout manuel du token
+                ]);
+
+                if (!$review) {
+                    throw new \Exception('Échec de la création de l\'avis');
+                }
+
+                Log::info('Nouvel avis créé pour le ticket #' . $this->ticket->id);
+            }
+
+            // Mettre à jour l'état du composant
+            $this->reviewSubmitted = true;
+            $this->showReviewForm = false;
+
+            // Rafraîchir la relation pour mettre à jour has_review
+            $this->ticket->refresh();
+
+            // Afficher un message de succès
+            session()->flash('review_submitted', 'Merci pour votre avis !');
+
+            // Réinitialiser les champs du formulaire
+            $this->reset(['rating', 'comment']);
+
+            return true;
+
+        } catch (\Exception $e) {
+            // En cas d'erreur, afficher un message d'erreur
+            $errorMessage = 'Une erreur est survenue lors de la soumission de votre avis. Veuillez réessayer.';
+            session()->flash('error', $errorMessage);
+            Log::error('Erreur lors de la soumission d\'un avis: ' . $e->getMessage());
+
+            // Réafficher le formulaire avec les données saisies
+            $this->showReviewForm = true;
+
+            return false;
+        }
     }
 
     private function updateTicketData()
@@ -40,7 +122,7 @@ class RealtimeTicketStatus extends Component
         try {
             // Rafraîchir le ticket depuis la base de données pour avoir les dernières données
             $this->ticket->refresh();
-            
+
             // Stocker le statut actuel du ticket dans la session
             session(['last_ticket_status' => $this->ticket->status]);
 
@@ -82,14 +164,14 @@ class RealtimeTicketStatus extends Component
             $this->waitingTicketsCount = $this->queue->tickets()
                 ->where('status', 'waiting')
                 ->count();
-                
+
         } catch (\Exception $e) {
             Log::error('Erreur lors de la mise à jour des données du ticket', [
                 'ticket_id' => $this->ticket->id ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             // Réinitialiser les valeurs en cas d'erreur
             $this->position = 0;
             $this->estimatedWaitTime = '--:--';
@@ -111,19 +193,19 @@ class RealtimeTicketStatus extends Component
             // Mettre à jour le statut du ticket
             $this->ticket->update(['status' => 'paused']);
             $this->updateTicketData(); // Rafraîchir les données du composant
-            
+
             session()->flash('success', 'Votre ticket a été mis en pause momentanément.');
             return redirect()->route('public.ticket.status', [
-                'queue_code' => $this->queue->code, 
+                'queue_code' => $this->queue->code,
                 'ticket_code' => $this->ticket->code_ticket
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Erreur lors de la mise en pause du ticket', [
                 'ticket_id' => $this->ticket->id ?? null,
                 'error' => $e->getMessage()
             ]);
-            
+
             session()->flash('error', 'Une erreur est survenue lors de la mise en pause du ticket.');
         }
     }
@@ -139,19 +221,19 @@ class RealtimeTicketStatus extends Component
             // Mettre à jour le statut du ticket
             $this->ticket->update(['status' => 'waiting']);
             $this->updateTicketData(); // Rafraîchir les données du composant
-            
+
             session()->flash('success', 'Votre ticket est de nouveau actif dans la file.');
             return redirect()->route('public.ticket.status', [
-                'queue_code' => $this->queue->code, 
+                'queue_code' => $this->queue->code,
                 'ticket_code' => $this->ticket->code_ticket
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Erreur lors de la reprise du ticket', [
                 'ticket_id' => $this->ticket->id ?? null,
                 'error' => $e->getMessage()
             ]);
-            
+
             session()->flash('error', 'Une erreur est survenue lors de la reprise du ticket.');
         }
     }
@@ -169,16 +251,16 @@ class RealtimeTicketStatus extends Component
                 'status' => 'cancelled',
                 'handled_at' => now()
             ]);
-            
+
             session()->flash('success', 'Votre ticket a été annulé avec succès.');
             return redirect()->route('public.queues.index');
-            
+
         } catch (\Exception $e) {
             Log::error('Erreur lors de l\'annulation du ticket', [
                 'ticket_id' => $this->ticket->id ?? null,
                 'error' => $e->getMessage()
             ]);
-            
+
             session()->flash('error', 'Une erreur est survenue lors de l\'annulation du ticket.');
             return back();
         }

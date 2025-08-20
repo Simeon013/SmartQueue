@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use App\Models\TicketCycle;
 use App\Models\Review;
 
@@ -55,7 +56,10 @@ class Ticket extends Model
      */
     public function getHasReviewAttribute(): bool
     {
-        return $this->review()->exists();
+        if (!array_key_exists('review', $this->relations)) {
+            $this->load('review');
+        }
+        return !is_null($this->review) && $this->review->submitted_at !== null;
     }
     
     /**
@@ -70,7 +74,7 @@ class Ticket extends Model
 
         // Créer un nouvel avis avec un token unique
         return $this->review()->create([
-            'token' => \Illuminate\Support\Str::uuid(),
+            'token' => Str::uuid(),
         ]);
     }
     
@@ -82,12 +86,9 @@ class Ticket extends Model
     {
         static::updated(function ($ticket) {
             // Vérifier si le ticket vient d'être marqué comme traité
-            if ($ticket->isDirty('status') && $ticket->status === 'traité') {
+            if ($ticket->isDirty('status') && $ticket->status === 'served') {
                 // Créer un avis pour ce ticket
                 $ticket->createReview();
-                
-                // Envoyer un email au client avec le lien pour donner son avis
-                // (à implémenter plus tard avec un système de notification)
             }
         });
     }

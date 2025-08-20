@@ -143,7 +143,66 @@
                 <h3 class="text-2xl font-bold text-{{ $textColor }} mb-2">{{ $message }}</h3>
                 <p class="mb-6 text-lg text-gray-600">{{ $description }}</p>
 
-                <div class="flex flex-col gap-4 justify-center sm:flex-row">
+                @if($showReviewForm)
+                    <!-- Formulaire d'avis -->
+                    <div class="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+                        <h4 class="text-lg font-medium text-gray-900 mb-4">Donnez votre avis sur notre service</h4>
+                        
+                        @if(session('review_submitted'))
+                            <div class="mb-4 p-4 bg-green-50 text-green-700 rounded-md">
+                                {{ session('review_submitted') }}
+                            </div>
+                        @elseif(session('error'))
+                            <div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
+                                {{ session('error') }}
+                            </div>
+                        @else
+                            <form wire:submit.prevent="submitReview">
+                                <!-- Note en étoiles -->
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        Note
+                                    </label>
+                                    <div class="flex items-center space-x-1">
+                                        @for($i = 1; $i <= 5; $i++)
+                                            <button type="button" 
+                                                    wire:click="$set('rating', {{ $i }})" 
+                                                    class="text-3xl {{ $i <= $rating ? 'text-yellow-500' : 'text-gray-300' }}">
+                                                ★
+                                            </button>
+                                        @endfor
+                                    </div>
+                                    @error('rating') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                </div>
+                                
+                                <!-- Commentaire -->
+                                <div class="mb-4">
+                                    <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">
+                                        Commentaire (optionnel)
+                                    </label>
+                                    <textarea 
+                                        id="comment"
+                                        wire:model="comment"
+                                        rows="3"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        placeholder="Dites-nous ce que vous avez pensé de notre service..."></textarea>
+                                    @error('comment') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                </div>
+                                
+                                <!-- Bouton de soumission -->
+                                <div class="flex justify-end">
+                                    <button 
+                                        type="submit"
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        Envoyer mon avis
+                                    </button>
+                                </div>
+                            </form>
+                        @endif
+                    </div>
+                @endif
+                
+                <div class="flex flex-col gap-4 justify-center sm:flex-row mt-6">
                     @if($showNewTicketBtn)
                         <a href="{{ route('public.queue.show.code', $queue->code) }}"
                            class="inline-flex justify-center items-center px-6 py-3 text-base font-medium text-white bg-blue-600 rounded-md border border-transparent hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
