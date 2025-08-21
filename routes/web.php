@@ -61,6 +61,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 // Les autres routes admin restent protégées
 // Routes administratives globales (nécessitent d'être admin)
 Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
+    // Route pour l'historique des files d'attente (admin et super-admin uniquement)
+    Route::get('/history', [\App\Http\Controllers\Admin\HistoryController::class, 'index'])
+         ->name('history.index');
+         
+    // Route pour les statistiques de l'historique (AJAX)
+    Route::get('/history/stats', [\App\Http\Controllers\Admin\HistoryController::class, 'stats'])
+         ->name('history.stats');
+
     // Routes pour la gestion des services
     Route::resource('services', \App\Http\Controllers\Admin\ServiceController::class)->except(['show']);
     Route::patch('services/{service}/toggle-status', [\App\Http\Controllers\Admin\ServiceController::class, 'toggleStatus'])->name('services.toggle-status');
@@ -97,21 +105,21 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix
     Route::get('roles', [\App\Http\Controllers\Admin\RoleController::class, 'index'])->name('roles.index');
     Route::get('roles/{roleSlug}', [\App\Http\Controllers\Admin\RoleController::class, 'show'])->name('roles.show');
     Route::get('roles/{roleSlug}/users', [\App\Http\Controllers\Admin\RoleController::class, 'users'])->name('roles.users');
-    
+
     // Désactiver les routes non utilisées pour la gestion statique des rôles
     Route::get('roles/create', [\App\Http\Controllers\Admin\RoleController::class, 'create'])->name('roles.create');
     Route::post('roles', [\App\Http\Controllers\Admin\RoleController::class, 'store'])->name('roles.store');
     Route::get('roles/{roleSlug}/edit', [\App\Http\Controllers\Admin\RoleController::class, 'edit'])->name('roles.edit');
     Route::put('roles/{roleSlug}', [\App\Http\Controllers\Admin\RoleController::class, 'update'])->name('roles.update');
     Route::delete('roles/{roleSlug}', [\App\Http\Controllers\Admin\RoleController::class, 'destroy'])->name('roles.destroy');
-    
+
     // Désactiver les routes de gestion des permissions (gérées en dur dans l'énumération)
     Route::post('roles/{roleSlug}/assign-permission', [\App\Http\Controllers\Admin\RoleController::class, 'assignPermission'])->name('roles.assign-permission');
     Route::post('roles/{roleSlug}/remove-permission', [\App\Http\Controllers\Admin\RoleController::class, 'removePermission'])->name('roles.remove-permission');
 
     // Routes pour la gestion des permissions des files
     // (déplacées en dehors du groupe admin pour permettre l'accès aux agents avec les bonnes permissions)
-    
+
     // Route pour voir les files d'un utilisateur (nécessite des droits admin)
     Route::get('users/{user}/queues', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'userQueues'])->name('users.queues');
 });
@@ -126,14 +134,14 @@ require __DIR__.'/reviews.php';
 Route::middleware(['auth', \App\Http\Middleware\CheckQueuePermission::class . ':manage'])->prefix('admin/queues')->name('admin.queues.')->group(function () {
     // Affichage du QR code en grand format
     Route::get('{queue}/qrcode', [\App\Http\Controllers\Admin\QueueController::class, 'showQrCode'])->name('qrcode');
-    
+
     // Actions rapides
     Route::patch('{queue}/toggle-status', [\App\Http\Controllers\Admin\QueueController::class, 'toggleStatus'])->name('toggle-status');
     Route::patch('{queue}/toggle-pause', [\App\Http\Controllers\Admin\QueueController::class, 'togglePause'])->name('toggle-pause');
     Route::patch('{queue}/close', [\App\Http\Controllers\Admin\QueueController::class, 'close'])->name('close');
     Route::patch('{queue}/reopen', [\App\Http\Controllers\Admin\QueueController::class, 'reopen'])->name('reopen');
     Route::post('{queue}/cancel-pending-tickets', [\App\Http\Controllers\Admin\QueueController::class, 'cancelPendingTickets'])->name('cancel-pending-tickets');
-    
+
     // Gestion des permissions
     Route::get('{queue}/permissions', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'index'])->name('permissions');
     Route::post('{queue}/permissions/mode', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'setMode'])->name('permissions.mode');

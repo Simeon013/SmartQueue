@@ -15,7 +15,7 @@
     @vite(['resources/css/app.css'])
     @livewireStyles
     @stack('styles')
-    
+
     <!-- Scripts -->
     @vite(['resources/js/app.js'])
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -51,21 +51,23 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 01-8 0"/></svg>
                         Guichets
                     </a> --}}
-                    <a href="#" class="flex gap-3 items-center px-4 py-2 text-base font-medium text-gray-700 rounded-lg hover:bg-blue-50">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 018 0v2m-4-4a4 4 0 100-8 4 4 0 000 8z"/></svg>
-                        Statistiques
-                    </a>
+                    @if (auth()->user()->isSuperAdmin() || auth()->user()->isAdmin())
+                        <a href="{{ route('admin.history.index') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.history.*') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                            Historique
+                        </a>
+                    @endif
                     @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
-                    <a href="{{ route('admin.users.index') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.users.*') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        Utilisateurs
-                    </a>
+                        <a href="{{ route('admin.users.index') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.users.*') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            Utilisateurs
+                        </a>
                     @endif
                     @if(auth()->user()->isSuperAdmin())
-                    <a href="{{ route('admin.roles.index') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.roles.*') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Rôles
-                    </a>
+                        <a href="{{ route('admin.roles.index') }}" class="flex items-center gap-3 px-4 py-2 rounded-lg font-medium text-base {{ request()->routeIs('admin.roles.*') ? 'bg-blue-900 text-white' : 'text-gray-700 hover:bg-blue-50' }}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Rôles
+                        </a>
                     @endif
                 </nav>
                 <!-- Paramètres en bas -->
