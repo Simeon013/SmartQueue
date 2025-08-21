@@ -29,6 +29,9 @@ class RealtimeTicketStatus extends Component
     public $rating = 0;
     public $comment = '';
     public $reviewSubmitted = false;
+    
+    // Propriété pour la modale d'annulation
+    public $showCancelModal = false;
 
     public function mount(Ticket $ticket, Queue $queue)
     {
