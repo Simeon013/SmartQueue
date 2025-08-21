@@ -28,17 +28,15 @@
 }
 
 body {
-    /* Correction pour iOS et optimisation de la lisibilité */
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
+    /* Optimisation de la lisibilité */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     /* Empêcher le défilement horizontal */
     overflow-x: hidden;
     width: 100%;
-    /* Meilleure gestion du défilement sur iOS */
-    -webkit-overflow-scrolling: touch;
+    /* Amélioration du défilement sur mobile */
+    scroll-behavior: smooth;
 }
 
 .public-container {

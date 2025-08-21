@@ -62,5 +62,8 @@
     </footer>
 
     @livewireScripts
+    
+    <!-- Alpine.js -->
+    <script src="//unpkg.com/alpinejs" defer></script>
 </body>
 </html>

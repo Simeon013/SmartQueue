@@ -17,6 +17,20 @@ return [
 
     /*
     |---------------------------------------------------------------------------
+    | Layout
+    |---------------------------------------------------------------------------
+    |
+    | The default layout view that will be used when rendering a component via
+    | Route::get('/some-path', SomeComponent::class);. In this case, the view
+    | returned by SomeComponent will be wrapped in the layouts.app view.
+    |
+    */
+
+    'layout' => 'layouts.public',
+
+
+    /*
+    |---------------------------------------------------------------------------
     | View Path
     |---------------------------------------------------------------------------
     |
@@ -27,18 +41,6 @@ return [
     */
 
     'view_path' => resource_path('views/livewire'),
-
-    /*
-    |---------------------------------------------------------------------------
-    | Layout
-    |---------------------------------------------------------------------------
-    | The view that will be used as the layout when rendering a single component
-    | as an entire page via `Route::get('/post/create', CreatePost::class);`.
-    | In this case, the view returned by CreatePost will render into $slot.
-    |
-    */
-
-    'layout' => 'components.layouts.app',
 
     /*
     |---------------------------------------------------------------------------

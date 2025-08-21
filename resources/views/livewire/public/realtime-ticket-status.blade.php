@@ -1,369 +1,452 @@
-<div wire:poll.2s class="space-y-4">
-    @if(!$ticket)
-        @php
-            // Utiliser le statut du ticket s'il existe, sinon utiliser un statut par défaut
-            $ticketStatus = 'not_found';
-            // dd($ticketStatus);
+<div wire:poll.2s class="min-h-screen bg-gray-50">
+    <!-- Conteneur principal -->
+    <div class="w-full max-w-4xl mx-auto">
+        <!-- En-tête de la page -->
+        {{-- <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Statut de votre ticket</h1>
+            <p class="text-lg text-gray-600">Suivez en temps réel l'avancement de votre file d'attente</p>
+        </div> --}}
 
-            // Définir les messages et couleurs par défaut
-            $message = 'Ticket non trouvé ou expiré';
-            $description = 'Veuillez prendre un nouveau ticket si nécessaire.';
-            $bgColor = 'red-100';
-            $textColor = 'red-700';
-            $borderColor = 'red-400';
-            $showNewTicketBtn = true;
-            $showReturnBtn = false;
-            $icon = 'exclamation-circle';
-        @endphp
-
-        <div class="p-8 text-center bg-white rounded-lg shadow-lg border border-{{ $borderColor }}">
-            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-{{ $bgColor }} mb-4">
-                <i class="fas fa-{{ $icon }} text-3xl text-{{ $textColor }}"></i>
-            </div>
-
-            <h3 class="text-2xl font-bold text-{{ $textColor }} mb-2">{{ $message }}</h3>
-            <p class="mb-6 text-lg text-gray-600">{{ $description }}</p>
-
-            <div class="flex flex-col gap-4 justify-center sm:flex-row">
-                <a href="{{ route('public.queue.show.code', $queue->code) }}"
-                   class="inline-flex justify-center items-center px-6 py-3 text-base font-medium text-white bg-blue-600 rounded-md border border-transparent hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <i class="mr-2 fas fa-plus-circle"></i> Prendre un nouveau ticket
-                </a>
-
-                <a href="{{ route('public.queues.index') }}"
-                   class="inline-flex justify-center items-center px-6 py-3 text-base font-medium text-gray-700 bg-white rounded-md border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <i class="mr-2 fas fa-home"></i> Retour à l'accueil
-                </a>
-            </div>
-        </div>
-    @else
-        @php
-            // Utiliser le statut du ticket
-            $ticketStatus = $ticket->status;
-            // dd($ticketStatus);
-
-            // Définir les messages et couleurs par défaut
-            $message = 'Statut inconnu';
-            $description = 'Veuillez contacter le support si nécessaire.';
-            $bgColor = 'gray-100';
-            $textColor = 'gray-800';
-            $borderColor = 'gray-200';
-            $showNewTicketBtn = true;
-            $showReturnBtn = true;
-            $icon = 'info-circle';
-
-            // Personnaliser le message en fonction du statut du ticket
-            switch($ticketStatus) {
-                case 'served':
-                    $message = '🎉 Félicitations ! Votre ticket a été traité avec succès !';
-                    $description = 'Merci d\'avoir utilisé notre service. Nous espérons vous revoir bientôt !';
-                    $bgColor = 'green-50';
-                    $textColor = 'green-800';
-                    $borderColor = 'green-200';
-                    $icon = 'check-circle';
-                    $showNewTicketBtn = false;
-                    break;
-
-                case 'skipped':
-                    $message = '⏱️ Votre ticket a été marqué comme absent';
-                    $description = 'Vous n\'étiez pas présent(e) lors de l\'appel de votre numéro. Si vous souhaitez rejoindre à nouveau la file, veuillez prendre un nouveau ticket.';
-                    $bgColor = 'yellow-50';
-                    $textColor = 'yellow-800';
-                    $borderColor = 'yellow-200';
-                    $icon = 'user-clock';
-                    break;
-
-                case 'cancelled':
-                    $message = '❌ Votre ticket a été annulé';
-                    $description = 'Si vous souhaitez rejoindre à nouveau la file, veuillez prendre un nouveau ticket.';
-                    $bgColor = 'gray-50';
-                    $textColor = 'gray-800';
-                    $borderColor = 'gray-200';
-                    $icon = 'times-circle';
-                    break;
-
-                case 'waiting':
-                case 'in_progress':
-                case 'paused':
-                    // Ces cas sont gérés dans la vue principale
-                    break;
-
-                default:
-                    $message = 'ℹ️ ' . $message;
-                    $icon = 'info-circle';
-            }
-        @endphp
-
-        @if(in_array($ticketStatus, ['waiting', 'in_progress', 'paused']))
-            <!-- Afficher les informations du ticket en cours -->
-            <div class="p-6 bg-white rounded-lg shadow">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-semibold text-gray-900">Votre ticket</h3>
-                    <span class="px-3 py-1 text-sm font-semibold text-white bg-blue-600 rounded-full">
-                        {{ strtoupper($ticketStatus) }}
-                    </span>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Numéro de ticket</span>
-                        <span class="font-medium">{{ $ticket->code_ticket }}</span>
+        @if(!$ticket)
+            <!-- Aucun ticket trouvé -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-red-200">
+                <div class="p-8 text-center">
+                    <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-red-50 mb-6">
+                        <i class="fas fa-ticket-alt text-4xl text-red-500"></i>
                     </div>
 
-                    @if($ticket->position)
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Position dans la file</span>
-                        <span class="font-medium">#{{ $ticket->position }}</span>
-                    </div>
-                    @endif
+                    <h2 class="text-2xl font-bold text-gray-900 mb-3">Ticket non trouvé</h2>
+                    <p class="text-lg text-gray-600 mb-8">Il semble que votre ticket soit expiré ou n'existe pas.</p>
 
-                    @if($estimatedWaitTime !== '--:--')
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Temps d'attente estimé</span>
-                        <span class="font-medium">{{ $estimatedWaitTime }}</span>
-                    </div>
-                    @endif
+                    <div class="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 justify-center">
+                        @if($queue ?? false)
+                            <a href="{{ route('public.queue.show.code', $queue->code) }}"
+                               class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                                <i class="fas fa-plus-circle mr-2"></i> Prendre un nouveau ticket
+                            </a>
+                        @endif
 
-                    @if($ticketStatus === 'paused')
-                    <div class="pt-4 mt-4 border-t border-gray-200">
-                        <button wire:click="resumeTicket" class="px-4 py-2 w-full text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            <i class="mr-2 fas fa-play"></i> Reprendre mon ticket
-                        </button>
+                        <a href="{{ route('public.queues.index') }}"
+                           class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                            <i class="fas fa-home mr-2"></i> Retour à l'accueil
+                        </a>
                     </div>
-                    @endif
                 </div>
             </div>
         @else
-            <!-- Afficher le message de statut -->
-            <div class="p-8 text-center bg-white rounded-lg shadow-lg border border-{{ $borderColor }}">
-                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-{{ $bgColor }} mb-4">
-                    <i class="fas fa-{{ $icon }} text-3xl text-{{ $textColor }}"></i>
+            @php
+                $statusInfo = [
+                    'waiting' => [
+                        'bgColor' => 'bg-blue-50',
+                        'textColor' => 'text-blue-800',
+                        'borderColor' => 'border-blue-200',
+                        'icon' => 'clock',
+                        'message' => 'En attente de traitement',
+                        'class' => 'bg-blue-100 text-blue-800',
+                        'label' => 'En attente',
+                        'emoji' => '⏳',
+                        'color' => 'blue'
+                    ],
+                    'in_progress' => [
+                        'bgColor' => 'bg-yellow-50',
+                        'textColor' => 'text-yellow-800',
+                        'borderColor' => 'border-yellow-200',
+                        'icon' => 'user-clock',
+                        'message' => 'Présentez-vous au comptoir',
+                        'class' => 'bg-yellow-100 text-yellow-800',
+                        'label' => 'À vous de jouer',
+                        'emoji' => '🚨',
+                        'color' => 'yellow'
+                    ],
+                    'paused' => [
+                        'bgColor' => 'bg-orange-50',
+                        'textColor' => 'text-orange-800',
+                        'borderColor' => 'border-orange-200',
+                        'icon' => 'pause-circle',
+                        'message' => 'Votre place est en pause',
+                        'class' => 'bg-orange-100 text-orange-800',
+                        'label' => 'En pause',
+                        'emoji' => '⏸️',
+                        'color' => 'orange'
+                    ],
+                    'served' => [
+                        'bgColor' => 'bg-green-50',
+                        'textColor' => 'text-green-800',
+                        'borderColor' => 'border-green-200',
+                        'icon' => 'check-circle',
+                        'message' => 'Service terminé avec succès',
+                        'class' => 'bg-green-100 text-green-800',
+                        'label' => 'Terminé',
+                        'emoji' => '✅',
+                        'color' => 'green'
+                    ],
+                    'cancelled' => [
+                        'bgColor' => 'bg-red-50',
+                        'textColor' => 'text-red-800',
+                        'borderColor' => 'border-red-200',
+                        'icon' => 'times-circle',
+                        'message' => 'Ce ticket a été annulé',
+                        'class' => 'bg-red-100 text-red-800',
+                        'label' => 'Annulé',
+                        'emoji' => '❌',
+                        'color' => 'red'
+                    ],
+                    'skipped' => [
+                        'bgColor' => 'bg-gray-50',
+                        'textColor' => 'text-gray-800',
+                        'borderColor' => 'border-gray-200',
+                        'icon' => 'forward',
+                        'message' => 'Vous avez été marqué comme absent',
+                        'class' => 'bg-gray-100 text-gray-800',
+                        'label' => 'Passé',
+                        'emoji' => '⏭️',
+                        'color' => 'gray'
+                    ]
+                ][$ticket->status] ?? [
+                    'bgColor' => 'bg-gray-50',
+                    'textColor' => 'text-gray-800',
+                    'borderColor' => 'border-gray-200',
+                    'icon' => 'question-circle',
+                    'message' => 'Statut inconnu',
+                    'class' => 'bg-gray-100 text-gray-800',
+                    'label' => 'Inconnu',
+                    'emoji' => '❓',
+                    'color' => 'gray'
+                ];
+            @endphp
+
+            <!-- Carte principale du statut -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 {{ $statusInfo['borderColor'] }} mb-6 transition-all duration-300 hover:shadow-xl">
+                <!-- Bandeau de statut -->
+                <div class="px-4 py-3 sm:px-6 {{ $statusInfo['bgColor'] }} {{ $statusInfo['textColor'] }} flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas {{ $statusInfo['icon'] }} text-xl mr-3"></i>
+                        <span class="text-lg font-semibold">{{ $statusInfo['label'] }}</span>
+                    </div>
+                    <span class="text-2xl">{{ $statusInfo['emoji'] }}</span>
                 </div>
 
-                <h3 class="text-2xl font-bold text-{{ $textColor }} mb-2">{{ $message }}</h3>
-                <p class="mb-6 text-lg text-gray-600">{{ $description }}</p>
-
-                @if($showReviewForm)
-                    <!-- Formulaire d'avis -->
-                    <div class="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
-                        <h4 class="text-lg font-medium text-gray-900 mb-4">Donnez votre avis sur notre service</h4>
-                        
-                        @if(session('review_submitted'))
-                            <div class="mb-4 p-4 bg-green-50 text-green-700 rounded-md">
-                                {{ session('review_submitted') }}
-                            </div>
-                        @elseif(session('error'))
-                            <div class="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
-                                {{ session('error') }}
-                            </div>
-                        @else
-                            <form wire:submit.prevent="submitReview">
-                                <!-- Note en étoiles -->
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                        Note
-                                    </label>
-                                    <div class="flex items-center space-x-1">
-                                        @for($i = 1; $i <= 5; $i++)
-                                            <button type="button" 
-                                                    wire:click="$set('rating', {{ $i }})" 
-                                                    class="text-3xl {{ $i <= $rating ? 'text-yellow-500' : 'text-gray-300' }}">
-                                                ★
-                                            </button>
-                                        @endfor
-                                    </div>
-                                    @error('rating') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                                </div>
-                                
-                                <!-- Commentaire -->
-                                <div class="mb-4">
-                                    <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">
-                                        Commentaire (optionnel)
-                                    </label>
-                                    <textarea 
-                                        id="comment"
-                                        wire:model="comment"
-                                        rows="3"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Dites-nous ce que vous avez pensé de notre service..."></textarea>
-                                    @error('comment') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                                </div>
-                                
-                                <!-- Bouton de soumission -->
-                                <div class="flex justify-end">
-                                    <button 
-                                        type="submit"
-                                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                        Envoyer mon avis
-                                    </button>
-                                </div>
-                            </form>
-                        @endif
+                <!-- Contenu principal -->
+                <div class="p-4 sm:p-6">
+                    <div class="flex flex-col items-center text-center mb-6">
+                        <div class="text-6xl font-bold mb-3 {{ $statusInfo['textColor'] }}">{{ $ticket->code_ticket }}</div>
+                        <p class="text-xl {{ $statusInfo['textColor'] }} font-medium">
+                            {{ $statusInfo['message'] }}
+                        </p>
                     </div>
-                @endif
-                
-                <div class="flex flex-col gap-4 justify-center sm:flex-row mt-6">
-                    @if($showNewTicketBtn)
-                        <a href="{{ route('public.queue.show.code', $queue->code) }}"
-                           class="inline-flex justify-center items-center px-6 py-3 text-base font-medium text-white bg-blue-600 rounded-md border border-transparent hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            <i class="mr-2 fas fa-plus-circle"></i> Prendre un nouveau ticket
-                        </a>
+
+                    <!-- Informations de position -->
+                    @if (!in_array($ticket->status, ['served', 'skipped', 'cancelled']))
+                        <div class="grid grid-cols-2 gap-3 mb-6">
+                            <!-- Votre numéro -->
+                            {{-- <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-center">
+                                <div class="text-sm font-medium text-gray-500 mb-2">
+                                    <i class="fas fa-ticket-alt mr-1"></i> Votre numéro
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900">{{ $ticket->code_ticket }}</div>
+                            </div> --}}
+
+                            <!-- Position dans la file -->
+                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-center">
+                                <div class="text-sm font-medium text-gray-500 mb-2">
+                                    <i class="fas fa-list-ol mr-1"></i> Position
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900">
+                                    @if($position > 0)
+                                        {{ $position }}<span class="text-sm font-normal text-gray-500">/{{ $waitingTicketsCount }}</span>
+                                    @else
+                                        <span class="text-green-600 text-xl">C'est à vous !</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Temps d'attente estimé -->
+                            <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-center">
+                                <div class="text-sm font-medium text-gray-500 mb-2">
+                                    <i class="far fa-clock mr-1"></i> Temps d'attente
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900">{{ $estimatedWaitTime ?? '--:--' }}</div>
+                            </div>
+
+                            <!-- Tickets en attente -->
+                            {{-- <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-center">
+                                <div class="text-sm font-medium text-gray-500 mb-2">
+                                    <i class="fas fa-users mr-1"></i> En attente
+                                </div>
+                                <div class="text-2xl font-bold text-gray-900">{{ $waitingTicketsCount ?? '0' }}</div>
+                            </div> --}}
+                        </div>
+
+                        <!-- Messages d'état spéciaux -->
+                        @if ($ticket->status === 'in_progress')
+                            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-r-lg">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-exclamation-triangle text-yellow-500 text-xl mt-0.5"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-base font-medium text-yellow-800">
+                                            <strong>À votre tour !</strong> Veuillez vous présenter au comptoir.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Actions du ticket -->
+                        <div class="mt-6 space-y-4">
+                            @if($ticket->status === 'waiting')
+                                <button
+                                    wire:click="pauseTicket"
+                                    class="w-full flex items-center justify-center px-6 py-4 border-2 border-yellow-400 text-lg font-semibold rounded-xl shadow-sm text-yellow-800 bg-yellow-50 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-colors duration-200"
+                                >
+                                    <i class="fas fa-pause text-xl mr-3"></i>
+                                    Mettre en pause ma place
+                                </button>
+
+                                <button
+                                    wire:click="$set('showCancelModal', true)"
+                                    class="w-full flex items-center justify-center px-6 py-4 border-2 border-gray-300 text-lg font-semibold rounded-xl shadow-sm text-gray-800 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                                >
+                                    <i class="fas fa-times-circle text-xl mr-3"></i>
+                                    Annuler mon ticket
+                                </button>
+
+                            @elseif($ticket->status === 'paused')
+                                <button
+                                    wire:click="resumeTicket"
+                                    class="w-full flex items-center justify-center px-6 py-4 border-2 border-green-500 text-lg font-semibold rounded-xl shadow-sm text-green-800 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                                >
+                                    <i class="fas fa-play text-xl mr-3"></i>
+                                    Reprendre ma place
+                                </button>
+
+                                <button
+                                    wire:click="$set('showCancelModal', true)"
+                                    class="w-full flex items-center justify-center px-6 py-4 border-2 border-gray-300 text-lg font-semibold rounded-xl shadow-sm text-gray-800 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                                >
+                                    <i class="fas fa-times-circle text-xl mr-3"></i>
+                                    Annuler mon ticket
+                                </button>
+                            @endif
+                        </div>
+                    @elseif($ticket->status === 'cancelled')
+                        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-circle text-red-500 text-xl mt-0.5"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-base font-medium text-red-800">
+                                        <strong>Ticket annulé</strong> Ce ticket n'est plus valide. Veuillez en prendre un nouveau si nécessaire.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    @elseif(in_array($ticket->status, ['served', 'skipped']))
+                        <div class="bg-gray-50 border-l-4 border-gray-500 p-4 mb-6 rounded-r-lg">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-gray-500 text-xl mt-0.5"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-base font-medium text-gray-800">
+                                        @if($ticket->status === 'served')
+                                            <strong>Service terminé</strong> Nous espérons que vous avez été satisfait de notre service.
+                                        @else
+                                            <strong>Absence constatée</strong> Vous avez été marqué comme absent. Prenez un nouveau ticket si nécessaire.
+                                        @endif
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     @endif
 
-                    <a href="{{ route('public.queues.index') }}"
-                       class="inline-flex justify-center items-center px-6 py-3 text-base font-medium text-gray-700 bg-white rounded-md border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <i class="mr-2 fas fa-home"></i> Retour à l'accueil
-                    </a>
+                    <!-- Formulaire d'avis -->
+                    @if($ticket->status === 'served' && !$ticket->has_review && !$reviewSubmitted)
+                        <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md overflow-hidden border-2 border-blue-100">
+                            <div class="p-5 sm:p-6">
+                                <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center">
+                                    <i class="fas fa-star text-yellow-400 text-2xl mr-3"></i>
+                                    Donnez votre avis
+                                </h3>
+                                <p class="text-gray-600 text-base mb-6">Aidez-nous à améliorer notre service en partageant votre expérience.</p>
+
+                                @if($reviewSubmitted)
+                                    <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg flex items-start">
+                                        <i class="fas fa-check-circle text-green-500 text-xl mt-0.5 mr-3"></i>
+                                        <p class="text-green-800 font-medium">Merci pour votre avis !</p>
+                                    </div>
+                                @else
+                                    <form wire:submit.prevent="submitReview">
+                                        <div class="mb-6">
+                                            <label for="rating" class="block text-base font-medium text-gray-700 mb-3">
+                                                Note
+                                            </label>
+                                            <div class="flex items-center justify-center space-x-1 sm:space-x-2 mb-2">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <button
+                                                        type="button"
+                                                        wire:click="$set('rating', {{ $i }})"
+                                                        class="text-4xl focus:outline-none {{ $i <= $rating ? 'text-yellow-400' : 'text-gray-300' }} hover:text-yellow-400 transition-transform transform hover:scale-110"
+                                                        aria-label="{{ $i }} étoile(s)"
+                                                    >
+                                                        ★
+                                                    </button>
+                                                @endfor
+                                            </div>
+                                            <div class="text-center text-sm text-gray-500">
+                                                @switch($rating)
+                                                    @case(1) Très insatisfait @break
+                                                    @case(2) Insatisfait @break
+                                                    @case(3) Moyen @break
+                                                    @case(4) Satisfait @break
+                                                    @case(5) Très satisfait @break
+                                                    @default Sélectionnez une note
+                                                @endswitch
+                                            </div>
+                                            @error('rating')
+                                                <p class="mt-2 text-sm text-red-600 text-center">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div class="mb-6">
+                                            <label for="comment" class="block text-base font-medium text-gray-700 mb-2">
+                                                Votre avis (optionnel)
+                                            </label>
+                                            <textarea
+                                                id="comment"
+                                                wire:model="comment"
+                                                rows="4"
+                                                class="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                placeholder="Dites-nous ce que vous avez pensé de notre service..."
+                                            ></textarea>
+                                            @error('comment')
+                                                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+
+                                        <div class="flex justify-end">
+                                            <button
+                                                type="submit"
+                                                class="w-full sm:w-auto flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                                            >
+                                                <i class="fas fa-paper-plane mr-2"></i>
+                                                Envoyer l'avis
+                                            </button>
+                                        </div>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+                    
+                    <!-- Bouton de retour à l'accueil pour les états terminés -->
+                    @if(in_array($ticket->status, ['served', 'skipped', 'cancelled']))
+                        <div class="mt-6">
+                            <a
+                                href="{{ route('public.queues.index') }}"
+                                class="block w-full text-center px-6 py-4 border-2 border-transparent text-lg font-semibold rounded-xl shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                            >
+                                <i class="fas fa-home text-xl mr-3"></i>
+                                Retour à l'accueil
+                            </a>
+                        </div>
+                    @endif
                 </div>
             </div>
-        @endif
-        <!-- Position Banner -->
-        <div class="p-6 text-center text-white bg-blue-600 rounded-lg shadow-md">
-            <h1 class="mb-2 text-2xl font-bold">Votre Position</h1>
-            <p class="text-blue-200">Restez informé de votre progression dans la file</p>
-        </div>
 
-        @if ($ticket->status === 'cancelled')
-            <div class="p-4 text-center text-red-700 bg-red-100 rounded-lg border border-red-400 shadow-md">
-                <p class="text-xl font-semibold">Votre ticket <span class="font-bold">{{ $ticket->code_ticket }}</span> a été annulé.</p>
-                <p class="text-lg">Si vous souhaitez rejoindre à nouveau la file, veuillez prendre un nouveau ticket.</p>
-            </div>
-        @elseif ($ticket->status === 'in_progress')
-            <div class="p-4 text-center text-blue-700 bg-blue-100 rounded-lg border border-blue-400 shadow-md">
-                <p class="text-xl font-semibold">Votre ticket <span class="font-bold">{{ $ticket->code_ticket }}</span> est en cours de traitement !</p>
-                @if($ticket->handler)
-                    <p class="text-lg">Veuillez rejoindre l'agent.</p>
-                @else
-                    <p class="text-lg">Veuillez vous présenter à l'accueil.</p>
-                @endif
-            </div>
-        @elseif ($ticket->status === 'paused')
-            <div class="p-4 text-center text-yellow-700 bg-yellow-100 rounded-lg border border-yellow-400 shadow-md">
-                <p class="font-semibold">Votre ticket est en pause. Votre position est conservée.</p>
-                <p class="text-sm">Vous pouvez revenir dans la file à tout moment.</p>
-            </div>
-        @elseif ($position <= 3 && $position > 0)
-            <div class="p-4 text-center text-orange-700 bg-orange-100 rounded-lg border border-orange-400 shadow-md">
-                <p class="font-semibold">Attention ! Votre position est proche. Préparez-vous !</p>
-            </div>
-        @endif
+            <!-- Section d'information sur la file d'attente -->
+            @if(isset($queue))
+                <div class="mt-8 bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-6">
+                        <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                            Informations sur la file d'attente
+                        </h2>
 
-        @if (!in_array($ticket->status, ['served', 'skipped', 'cancelled']))
-            <!-- Position Cards Grid -->
-            <div class="grid grid-cols-2 gap-4">
-                <div class="position-card">
-                    <div class="position-card-title">Votre Numéro</div>
-                    <div class="position-card-value">{{ $ticket->code_ticket }}</div>
-                </div>
-                <div class="position-card">
-                    <div class="position-card-title">Position Actuelle</div>
-                    <div class="position-card-value">
-                        @if ($ticket->status === 'paused')
-                            En pause
-                        @else
-                            {{ $position }}
-                        @endif
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row justify-between py-3 border-b border-gray-100">
+                                <span class="text-gray-600 flex items-center">
+                                    <i class="fas fa-signature text-blue-400 mr-2 w-5 text-center"></i>
+                                    Nom de la file
+                                </span>
+                                <span class="font-medium text-gray-900 mt-1 sm:mt-0">{{ $queue->name }}</span>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row justify-between py-3 border-b border-gray-100">
+                                <span class="text-gray-600 flex items-center">
+                                    <i class="fas fa-building text-blue-400 mr-2 w-5 text-center"></i>
+                                    Établissement
+                                </span>
+                                <span class="font-medium text-gray-900 mt-1 sm:mt-0">{{ $queue->establishment->name }}</span>
+                            </div>
+
+                            @if($queue->description)
+                                <div class="py-3 border-b border-gray-100">
+                                    <p class="text-gray-600 mb-1 flex items-center">
+                                        <i class="fas fa-align-left text-blue-400 mr-2 w-5 text-center"></i>
+                                        Description
+                                    </p>
+                                    <p class="text-gray-700 mt-1">{{ $queue->description }}</p>
+                                </div>
+                            @endif
+
+                            <div class="flex flex-col sm:flex-row justify-between py-3 border-b border-gray-100">
+                                <span class="text-gray-600 flex items-center">
+                                    <i class="fas fa-users text-blue-400 mr-2 w-5 text-center"></i>
+                                    Personnes devant vous
+                                </span>
+                                <span class="font-medium text-gray-900">{{ $waitingTicketsCount ?? '0' }} personne(s)</span>
+                            </div>
+
+                            @if(isset($currentServingTicketCode) && $currentServingTicketCode !== 'Aucun ticket en cours de traitement')
+                                <div class="bg-blue-50 p-4 rounded-lg mt-4 flex items-start">
+                                    <i class="fas fa-bullhorn text-blue-500 mt-1 mr-3"></i>
+                                    <div>
+                                        <p class="text-sm text-blue-700">
+                                            <span class="font-medium">Ticket en cours :</span> {{ $currentServingTicketCode }}
+                                        </p>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 </div>
-                @if($ticket->status !== 'paused')
-                <div class="position-card">
-                    <div class="position-card-title">Temps d'attente estimé</div>
-                    <div class="position-card-value">
-                        {{ $estimatedWaitTime }}
+            @endif
+
+            <!-- Modal de confirmation d'annulation -->
+            @if(isset($showCancelModal) && $showCancelModal)
+                <div class="fixed z-10 inset-0 overflow-y-auto">
+                    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                        <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                            <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                        </div>
+                        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                        <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                            <div class="sm:flex sm:items-start">
+                                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                    <i class="fas fa-exclamation text-red-600"></i>
+                                </div>
+                                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                    <h3 class="text-lg leading-6 font-medium text-gray-900">Annuler le ticket</h3>
+                                    <div class="mt-2">
+                                        <p class="text-sm text-gray-500">Êtes-vous sûr de vouloir annuler votre ticket ? Cette action est irréversible.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                                <button wire:click="cancelTicket" type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                    Oui, annuler
+                                </button>
+                                <button wire:click="$set('showCancelModal', false)" type="button" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm">
+                                    Non, garder mon ticket
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                @endif
-                <div class="position-card">
-                    <div class="position-card-title">Statut de la File</div>
-                    <div class="position-card-value">
-                        @php
-                            $statusClasses = [
-                                'open' => 'bg-green-100 text-green-800',
-                                'paused' => 'bg-yellow-100 text-yellow-800',
-                                'blocked' => 'bg-red-100 text-red-800',
-                                'closed' => 'bg-gray-100 text-gray-800',
-                            ][$queue->status->value];
-
-                            $statusLabels = [
-                                'open' => 'Active',
-                                'paused' => 'En pause',
-                                'blocked' => 'Bloquée',
-                                'closed' => 'Fermée',
-                            ][$queue->status->value];
-                        @endphp
-                        <span class="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full {{ $statusClasses }}">
-                            {{ $statusLabels }}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Establishment Info Card -->
-            <div class="establishment-info-card">
-                <div class="flex items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">Informations établissement</h2>
-                </div>
-                <p class="mb-2"><span class="font-semibold">Établissement :</span> {{ $queue->establishment->name }}</p>
-                @if($ticket->status !== 'paused')
-                    <p class="mb-2"><span class="font-semibold">Numéro en cours :</span> {{ $currentServingTicketCode }}</p>
-                    <p><span class="font-semibold">Utilisateurs en attente :</span> {{ $waitingTicketsCount }}</p>
-                @endif
-            </div>
+            @endif
         @endif
-
-        @if ($ticket->status === 'served' || $ticket->status === 'skipped')
-            <div class="p-4 space-y-4 text-center text-gray-700 bg-gray-100 rounded-lg border border-gray-400 shadow-md">
-                @if ($ticket->status === 'served')
-                    <p class="text-xl font-semibold">Votre ticket <span class="font-bold">{{ $ticket->code_ticket }}</span> a été traité.</p>
-                    <p class="text-base">Nous espérons que vous avez été bien servi. Merci de votre patience !</p>
-                @else
-                    <p class="text-xl font-semibold">Votre ticket <span class="font-bold">{{ $ticket->code_ticket }}</span> a été marqué comme absent.</p>
-                    <p class="text-base">Veuillez prendre un nouveau ticket si vous souhaitez rejoindre la file à nouveau. Merci de votre compréhension.</p>
-                @endif
-                <div class="flex justify-center p-4">
-                    <form action="{{ route('public.queues.index') }}" method="GET" class="w-full max-w-sm">
-                        <button type="submit" class="px-4 py-2 w-full text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                            Quitter
-                        </button>
-                    </form>
-                </div>
-            </div>
-        @elseif ($ticket->status === 'cancelled')
-            <div class="p-6 text-center">
-                <a href="{{ route('public.queue.show.code', $queue->code) }}" class="px-6 py-3 font-medium text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <i class="mr-2 fas fa-plus-circle"></i> Prendre un nouveau ticket
-                </a>
-            </div>
-        @elseif (!in_array($ticket->status, ['served', 'skipped', 'cancelled']))
-            {{-- Boutons d'action --}}
-            <div class="flex justify-center px-4">
-                @if ($ticket->status === 'paused')
-                    <form wire:submit.prevent="resumeTicket" class="w-full max-w-sm">
-                        @csrf
-                        <button type="submit" class="px-4 py-2 w-full text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-                            Retour dans la file
-                        </button>
-                    </form>
-                @else
-                    <form wire:submit.prevent="pauseTicket" class="w-full max-w-sm" onsubmit="return confirm('Êtes-vous sûr de vouloir quitter la file momentanément ? Vous pourrez y revenir plus tard.');">
-                        @csrf
-                        <button type="submit" class="px-4 py-2 w-full text-black bg-yellow-600 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50">
-                            Sortie momentanée
-                        </button>
-                    </form>
-                @endif
-            </div>
-
-            {{-- Bouton annuler --}}
-            <div class="flex justify-center px-4">
-                <form wire:submit.prevent="cancelTicket" class="w-full max-w-sm" onsubmit="return confirm('Êtes-vous sûr de vouloir annuler votre ticket ? Cette action est irréversible.');">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="px-4 py-2 w-full text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">
-                        Quitter
-                    </button>
-                </form>
-            </div>
-        @endif
-    @endif
+    </div>
 </div>
