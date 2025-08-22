@@ -41,15 +41,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Routes agent
-// Route::middleware(['auth', 'role:agent'])->prefix('agent')->name('agent.')->group(function () {
-//     Route::get('/queues/{queue}', [App\Http\Controllers\Agent\QueueController::class, 'dashboard'])->name('queue.dashboard');
-//     Route::get('/queues/{queue}/tickets', [App\Http\Controllers\Agent\QueueController::class, 'getTickets'])->name('queue.tickets');
-//     Route::post('/queues/{queue}/next', [App\Http\Controllers\Agent\QueueController::class, 'callNext'])->name('queue.next');
-//     Route::post('/queues/{queue}/tickets/{ticket}/present', [App\Http\Controllers\Agent\QueueController::class, 'markPresent'])->name('queue.present');
-//     Route::post('/queues/{queue}/tickets/{ticket}/skip', [App\Http\Controllers\Agent\QueueController::class, 'skip'])->name('queue.skip');
-// });
-
 // Accessible à tous les utilisateurs authentifiés
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {

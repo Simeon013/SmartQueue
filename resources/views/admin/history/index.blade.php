@@ -297,11 +297,13 @@
                         @php
                             $waitingTickets = $queue->tickets->where('status', 'waiting')->count();
                             $servedTickets = $queue->tickets->where('status', 'served')->count();
+                            $calledTickets = $queue->tickets->where('status', 'called')->count();
+                            $skippedTickets = $queue->tickets->where('status', 'skipped')->count();
                             $cancelledTickets = $queue->tickets->where('status', 'cancelled')->count();
                             $totalTickets = $queue->tickets->count();
                             $completionRate = $totalTickets > 0 ? round(($servedTickets / $totalTickets) * 100) : 0;
                         @endphp
-                        <tr class="hover:bg-gray-50">
+                        <tr class="cursor-pointer hover:bg-gray-50 group" onclick="window.location.href='{{ route('admin.queues.tickets.history', $queue) }}'" style="cursor: pointer;">
                             <td class="px-6 py-4">
                                 <div class="flex items-center">
                                     <div class="flex flex-shrink-0 justify-center items-center w-10 h-10 bg-blue-100 rounded-full">
@@ -345,12 +347,23 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center mt-1">
-                                        <div class="mr-2 w-16 text-xs text-right text-gray-500">Terminés:</div>
+                                        <div class="mr-2 w-16 text-xs text-right text-gray-500">Servis:</div>
                                         <div class="flex-1">
                                             <div class="flex items-center">
                                                 <div class="mr-2 w-12 text-right">{{ $servedTickets }}</div>
                                                 <div class="flex-1 h-2 bg-gray-200 rounded-full">
                                                     <div class="h-2 bg-green-500 rounded-full" style="width: {{ $totalTickets > 0 ? ($servedTickets / $totalTickets) * 100 : 0 }}%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center mt-1">
+                                        <div class="mr-2 w-16 text-xs text-right text-gray-500">Passés:</div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center">
+                                                <div class="mr-2 w-12 text-right">{{ $skippedTickets }}</div>
+                                                <div class="flex-1 h-2 bg-gray-200 rounded-full">
+                                                    <div class="h-2 bg-gray-500 rounded-full" style="width: {{ $totalTickets > 0 ? ($skippedTickets / $totalTickets) * 100 : 0 }}%"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -378,18 +391,54 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-sm font-medium text-right whitespace-nowrap">
-                                <div class="flex justify-end space-x-2">
-                                    <a href="{{ route('admin.queues.show', $queue) }}" class="flex items-center text-blue-600 hover:text-blue-900 group" title="Voir les détails">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                    </a>
-                                    <a href="#" class="flex items-center text-indigo-600 hover:text-indigo-900 group" title="Télécharger le rapport">
-                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                    </a>
+                                <div class="flex justify-end">
+                                    <div class="inline-block relative text-left" x-data="{ open: false }" @click.stop>
+                                        <div>
+                                            <button type="button" @click="open = !open" class="flex items-center text-gray-400 hover:text-gray-600 focus:outline-none" id="menu-button-{{ $queue->id }}" aria-expanded="true" aria-haspopup="true">
+                                                <span class="sr-only">Actions</span>
+                                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <div x-show="open" @click.away="open = false" 
+                                             x-transition:enter="transition ease-out duration-100"
+                                             x-transition:enter-start="transform opacity-0 scale-95"
+                                             x-transition:enter-end="transform opacity-100 scale-100"
+                                             x-transition:leave="transition ease-in duration-75"
+                                             x-transition:leave-start="transform opacity-100 scale-100"
+                                             x-transition:leave-end="transform opacity-0 scale-95"
+                                             class="absolute right-0 z-10 mt-2 w-48 bg-white rounded-md ring-1 ring-black ring-opacity-5 shadow-lg origin-top-right focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="menu-button-{{ $queue->id }}" tabindex="-1">
+                                            <div class="py-1" role="none">
+                                                <a href="{{ route('admin.queues.tickets.history', $queue) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="menu-item-0-{{ $queue->id }}">
+                                                    <div class="flex items-center">
+                                                        <svg class="mr-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                        </svg>
+                                                        Historique
+                                                    </div>
+                                                </a>
+                                                <a href="{{ route('admin.queues.show', $queue) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="menu-item-1-{{ $queue->id }}">
+                                                    <div class="flex items-center">
+                                                        <svg class="mr-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                        </svg>
+                                                        Voir la file
+                                                    </div>
+                                                </a>
+                                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="menu-item-2-{{ $queue->id }}">
+                                                    <div class="flex items-center">
+                                                        <svg class="mr-2 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                        </svg>
+                                                        Télécharger
+                                                    </div>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
