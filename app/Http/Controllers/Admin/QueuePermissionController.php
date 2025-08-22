@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
-use App\Models\Queue;
 use App\Models\User;
-use App\Models\QueuePermission;
+use App\Models\Queue;
 use Illuminate\Http\Request;
+use App\Models\QueuePermission;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 
 class QueuePermissionController extends Controller
 {
@@ -16,18 +19,18 @@ class QueuePermissionController extends Controller
     public function index(Queue $queue)
     {
         $queue->load(['permissions.user', 'permissions.grantedBy']);
-        
+
         // Récupérer tous les agents
         $agents = User::where('role', 'agent')
             ->orderBy('name')
             ->get();
-        
+
         // Récupérer les permissions actuelles
         $queuePermissions = $queue->permissions;
-        
+
         // Déterminer le mode de gestion actuel
         $currentMode = $this->getCurrentPermissionMode($queue);
-        
+
         return view('admin.queues.permissions', compact('queue', 'agents', 'queuePermissions', 'currentMode'));
     }
 
@@ -46,17 +49,18 @@ class QueuePermissionController extends Controller
                 ->whereNotNull('user_id')
                 ->whereNotIn('permission_type', ['owner'])
                 ->delete();
-            
+
             // Supprimer les permissions globales existantes
             $queue->permissions()->whereNull('user_id')->delete();
-            
+
             // Ajouter une permission spéciale pour tous les agents (gestion complète)
+            $authUser = Auth::user();
             $queue->permissions()->create([
                 'user_id' => null, // null = tous les agents
                 'permission_type' => 'manager',
-                'granted_by' => auth()->id(),
+                'granted_by' => $authUser ? $authUser->getAuthIdentifier() : null,
             ]);
-            
+
             return redirect()->back()->with('success', 'Tous les agents peuvent maintenant gérer complètement cette file d\'attente.');
         } elseif ($validated['mode'] === 'all_agents_operator') {
             // Supprimer seulement les permissions individuelles non-essentielles (pas owner/manager)
@@ -64,22 +68,23 @@ class QueuePermissionController extends Controller
                 ->whereNotNull('user_id')
                 ->whereNotIn('permission_type', ['owner', 'manager'])
                 ->delete();
-            
+
             // Supprimer les permissions globales existantes
             $queue->permissions()->whereNull('user_id')->delete();
-            
+
             // Ajouter une permission spéciale pour tous les agents (gestion des tickets seulement)
+            $authUser = Auth::user();
             $queue->permissions()->create([
                 'user_id' => null, // null = tous les agents
                 'permission_type' => 'operator',
-                'granted_by' => auth()->id(),
+                'granted_by' => $authUser ? $authUser->getAuthIdentifier() : null,
             ]);
-            
+
             return redirect()->back()->with('success', 'Tous les agents peuvent maintenant gérer les tickets de cette file d\'attente.');
         } else {
             // Supprimer la permission globale
             $queue->permissions()->whereNull('user_id')->delete();
-            
+
             return redirect()->back()->with('success', 'Mode de gestion individuelle activé. Vous pouvez maintenant sélectionner des agents spécifiques.');
         }
     }
@@ -102,19 +107,20 @@ class QueuePermissionController extends Controller
         foreach ($validated['agent_ids'] as $agentId) {
             // Vérifier si la permission existe déjà
             $existingPermission = $queue->permissions()->where('user_id', $agentId)->first();
-            
+
             if (!$existingPermission) {
+                $authUser = Auth::user();
                 $queue->permissions()->create([
                     'user_id' => $agentId,
                     'permission_type' => $validated['permission_type'],
-                    'granted_by' => auth()->id(),
+                    'granted_by' => $authUser ? $authUser->getAuthIdentifier() : null,
                 ]);
                 $addedCount++;
             }
         }
 
-        $message = $addedCount > 0 
-            ? "{$addedCount} agent(s) ajouté(s) avec succès." 
+        $message = $addedCount > 0
+            ? "{$addedCount} agent(s) ajouté(s) avec succès."
             : "Aucun nouvel agent ajouté (certains avaient déjà des permissions).";
 
         return redirect()->back()->with('success', $message);
@@ -135,9 +141,10 @@ class QueuePermissionController extends Controller
         }
 
         $oldType = $permission->permission_type;
+        $authUser = auth()->user();
         $permission->update([
             'permission_type' => $validated['permission_type'],
-            'granted_by' => auth()->id(),
+            'granted_by' => $authUser ? $authUser->id : null,
         ]);
 
         $typeNames = [
@@ -209,12 +216,67 @@ class QueuePermissionController extends Controller
     }
 
     /**
+     * Stocker une nouvelle permission pour un utilisateur sur une file d'attente.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'queue_id' => 'required|exists:queues,id',
+            'permission_type' => 'required|in:manager,operator',
+        ]);
+
+        try {
+            // Vérifier si la permission existe déjà
+            $existingPermission = QueuePermission::where('user_id', $validated['user_id'])
+                ->where('queue_id', $validated['queue_id'])
+                ->first();
+
+            if ($existingPermission) {
+                return redirect()->back()
+                    ->with('error', 'Cet utilisateur a déjà une permission sur cette file d\'attente.');
+            }
+
+            // Récupérer l'utilisateur authentifié
+            $authUser = Auth::user();
+
+            // Créer la nouvelle permission
+            $permission = QueuePermission::create([
+                'user_id' => $validated['user_id'],
+                'queue_id' => $validated['queue_id'],
+                'permission_type' => $validated['permission_type'],
+                'granted_by' => $authUser ? $authUser->getAuthIdentifier() : null,
+            ]);
+
+            // Journalisation de l'action
+            if ($authUser) {
+                activity()
+                    ->causedBy($authUser)
+                    ->performedOn($permission)
+                ->withProperties([
+                    'user_id' => $validated['user_id'],
+                    'queue_id' => $validated['queue_id'],
+                    'permission_type' => $validated['permission_type']
+                ])
+                ->log('Permission attribuée sur une file d\'attente');
+
+                return redirect()->back()
+                    ->with('success', 'La permission a été attribuée avec succès.');
+            }
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de l\'attribution de la permission : ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Une erreur est survenue lors de l\'attribution de la permission.');
+        }
+    }
+
+    /**
      * Déterminer le mode de gestion actuel des permissions
      */
     private function getCurrentPermissionMode(Queue $queue)
     {
         $globalPermission = $queue->permissions()->whereNull('user_id')->first();
-        
+
         if ($globalPermission) {
             if ($globalPermission->permission_type === 'manager') {
                 return 'all_agents_manager';
@@ -222,7 +284,7 @@ class QueuePermissionController extends Controller
                 return 'all_agents_operator';
             }
         }
-        
+
         return 'selected_agents';
     }
 }

@@ -91,6 +91,10 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix
     Route::get('users/{user}/permissions', [\App\Http\Controllers\Admin\UserController::class, 'permissions'])->name('users.permissions');
     Route::post('users/{user}/assign-role', [\App\Http\Controllers\Admin\UserController::class, 'assignRole'])->name('users.assign-role');
     Route::post('users/{user}/remove-role', [\App\Http\Controllers\Admin\UserController::class, 'removeRole'])->name('users.remove-role');
+    
+    // Routes pour la gestion des permissions des utilisateurs sur les files d'attente
+    Route::post('queue-permissions', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'store'])->name('queue-permissions.store');
+    Route::delete('queue-permissions/{permission}', [\App\Http\Controllers\Admin\QueuePermissionController::class, 'destroy'])->name('queue-permissions.destroy');
 
     // Routes pour la gestion des rôles (statiques)
     Route::get('roles', [\App\Http\Controllers\Admin\RoleController::class, 'index'])->name('roles.index');

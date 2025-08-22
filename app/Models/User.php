@@ -70,6 +70,7 @@ class User extends Authenticatable
     {
         // Si c'est une permission de modèle, on la traite séparément
         if (!is_string($ability) || str_contains($ability, '\\')) {
+            // Pour les autorisations de type modèle, on laisse le parent gérer
             return parent::can($ability, $arguments);
         }
         
@@ -81,8 +82,17 @@ class User extends Authenticatable
             if ($model instanceof self) {
                 return $this->canManageUser($ability, $model);
             }
+        } else {
+            // Pour les autorisations simples, vérifier d'abord si c'est une action spécifique à un utilisateur
+            if (in_array($ability, ['update', 'delete', 'view', 'forceDelete', 'restore'])) {
+                $model = $arguments[0] ?? null;
+                if ($model instanceof self) {
+                    return $this->canManageUser($ability, $model);
+                }
+            }
         }
 
+        // Vérifier les permissions du rôle
         return $this->getRole()->can($ability);
     }
     
@@ -96,12 +106,16 @@ class User extends Authenticatable
             return false;
         }
         
-        // Le super admin peut tout faire
+        // Le super admin peut tout faire sur les autres utilisateurs
         if ($this->isSuperAdmin()) {
+            // Un super admin ne peut pas se supprimer lui-même
+            if ($ability === 'delete' && $targetUser->isSuperAdmin()) {
+                return false;
+            }
             return true;
         }
         
-        // Un admin ne peut gérer que les agents
+        // Un admin peut gérer les agents
         if ($this->isAdmin()) {
             return $targetUser->isAgent();
         }
@@ -111,12 +125,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if the user has a specific role.
-     * 
+     * Check if the user has a specific role
+     *
      * @param UserRole|string|array $role The role to check, can be a UserRole enum, a string or an array of roles
      * @return bool True if the user has the role, false otherwise
      */
-    public function hasRole($role): bool
+    public function hasRole(UserRole|string|array $role): bool
     {
         // Support arrays of roles (strings or UserRole enums)
         if (is_array($role)) {
@@ -308,7 +322,51 @@ class User extends Authenticatable
      * Retourne uniquement les permissions spécifiques à l'utilisateur.
      * Les permissions globales sont gérées séparément.
      */
+    /**
+     * Retourne les permissions spécifiques à l'utilisateur.
+     * Inclut les permissions sur les files d'attente supprimées.
+     */
     public function queuePermissions()
     {
         return $this->hasMany(QueuePermission::class);
-    }}
+    }
+    
+    /**
+     * Retourne toutes les permissions de l'utilisateur, y compris les globales.
+     * Inclut également les permissions sur les files d'attente supprimées.
+     * 
+     * @return \Illuminate\Support\Collection
+     */
+    public function getAllQueuePermissions()
+    {
+        // Récupérer les permissions spécifiques à l'utilisateur
+        $specificPermissions = $this->queuePermissions()
+            ->with(['queue' => function($query) {
+                $query->withTrashed();
+            }])
+            ->get()
+            ->filter(function($permission) {
+                return $permission->queue !== null;
+            });
+        
+        // Récupérer les permissions globales (où user_id est null)
+        $globalPermissions = QueuePermission::whereNull('user_id')
+            ->with(['queue' => function($query) {
+                $query->withTrashed();
+            }])
+            ->get()
+            ->filter(function($permission) {
+                return $permission->queue !== null;
+            })
+            ->map(function($permission) {
+                $permission->is_global = true;
+                return $permission;
+            });
+            
+        // Fusionner les deux collections et supprimer les doublons
+        return $specificPermissions->merge($globalPermissions)
+            ->unique(function($item) {
+                return $item->queue_id . '_' . ($item->is_global ?? '0');
+            })->values();
+    }
+}
