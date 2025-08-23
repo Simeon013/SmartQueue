@@ -35,7 +35,7 @@ class QueueController extends Controller
             return redirect()->route('public.ticket.status', ['queue_code' => $queue->code, 'ticket_code' => $ticket->code_ticket]);
         }
 
-        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting', 'paused')->count();
+        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->orWhere('status', 'paused')->count();
         return view('public.queues.show', compact('queue', 'waitingTicketsCount'));
     }
 
@@ -218,7 +218,7 @@ class QueueController extends Controller
             return redirect()->route('public.ticket.status', ['queue_code' => $queue->code, 'ticket_code' => $ticket->code_ticket]);
         }
 
-        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting', 'paused')->count();
+        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->orWhere('status', 'paused')->count();
         return view('public.queues.show', compact('queue', 'waitingTicketsCount'));
     }
 

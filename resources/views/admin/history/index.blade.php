@@ -1,77 +1,71 @@
 @extends('layouts.admin')
 
-@section('title', 'Historique des Files d\'Attente')
+@section('header', 'Historique des Files d\'Attente')
 
 @push('styles')
-<style>
-    .stat-card {
-        @apply bg-white overflow-hidden shadow rounded-lg transition-all duration-200 hover:shadow-md;
-        border-top: 4px solid transparent;
-    }
-    .stat-card:hover {
-        transform: translateY(-2px);
-    }
-    .stat-card:nth-child(1) { border-top-color: #3B82F6; } /* Blue */
-    .stat-card:nth-child(2) { border-top-color: #10B981; } /* Green */
-    .stat-card:nth-child(3) { border-top-color: #F59E0B; } /* Yellow */
-    .stat-card:nth-child(4) { border-top-color: #8B5CF6; } /* Purple */
-
-    .stat-value {
-        @apply text-2xl font-semibold text-gray-900;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-    .stat-label {
-        @apply text-xs font-medium text-gray-500 uppercase tracking-wider;
-    }
-    .progress-bar {
-        @apply w-full bg-gray-200 rounded-full h-2 overflow-hidden mt-2;
-    }
-    .progress-bar-fill {
-        @apply h-full rounded-full transition-all duration-500 ease-out;
-    }
-    .filter-section {
-        @apply bg-white p-4 rounded-lg shadow mb-6 border border-gray-200;
-    }
-    .filter-title {
-        @apply text-lg font-medium text-gray-900 mb-4 flex items-center;
-    }
-    .filter-button {
-        @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
-    }
-    .reset-button {
-        @apply ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
-    }
-
-    /* Animation pour les cartes */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
+    <style>
+        .stat-card {
+            @apply bg-white overflow-hidden shadow rounded-lg transition-all duration-200 hover:shadow-md;
+            border-top: 4px solid transparent;
         }
-        to {
-            opacity: 1;
-            transform: translateY(0);
+        .stat-card:hover {
+            transform: translateY(-2px);
         }
-    }
+        .stat-card:nth-child(1) { border-top-color: #3B82F6; } /* Blue */
+        .stat-card:nth-child(2) { border-top-color: #10B981; } /* Green */
+        .stat-card:nth-child(3) { border-top-color: #F59E0B; } /* Yellow */
+        .stat-card:nth-child(4) { border-top-color: #8B5CF6; } /* Purple */
 
-    .stat-card {
-        animation: fadeInUp 0.5s ease-out forwards;
-    }
-    .stat-card:nth-child(1) { animation-delay: 0.1s; }
-    .stat-card:nth-child(2) { animation-delay: 0.2s; }
-    .stat-card:nth-child(3) { animation-delay: 0.3s; }
-    .stat-card:nth-child(4) { animation-delay: 0.4s; }
-</style>
+        .stat-value {
+            @apply text-2xl font-semibold text-gray-900;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .stat-label {
+            @apply text-xs font-medium text-gray-500 uppercase tracking-wider;
+        }
+        .progress-bar {
+            @apply w-full bg-gray-200 rounded-full h-2 overflow-hidden mt-2;
+        }
+        .progress-bar-fill {
+            @apply h-full rounded-full transition-all duration-500 ease-out;
+        }
+        .filter-section {
+            @apply bg-white p-4 rounded-lg shadow mb-6 border border-gray-200;
+        }
+        .filter-title {
+            @apply text-lg font-medium text-gray-900 mb-4 flex items-center;
+        }
+        .filter-button {
+            @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+        }
+        .reset-button {
+            @apply ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+        }
+
+        /* Animation pour les cartes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+    </style>
 @endpush
 
 @section('content')
     <div class="p-6 mb-2 bg-white rounded-lg shadow">
-        <div class="flex justify-between items-center mb-4">
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900">Historique des Files d'Attente</h1>
-                <p class="mt-1 text-sm text-gray-500">Analyse et suivi des performances des files d'attente</p>
-            </div>
-        </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <!-- Carte Files d'attente -->
@@ -402,7 +396,7 @@
                                             </button>
                                         </div>
 
-                                        <div x-show="open" @click.away="open = false" 
+                                        <div x-show="open" @click.away="open = false"
                                              x-transition:enter="transition ease-out duration-100"
                                              x-transition:enter-start="transform opacity-0 scale-95"
                                              x-transition:enter-end="transform opacity-100 scale-100"

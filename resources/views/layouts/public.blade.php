@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'SmartQueue') }}</title>
+    <title>{{ config('app.name', 'VirtualQ') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -28,7 +28,7 @@
     <header class="public-header w-full py-4 px-6 shadow-sm">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <a href="{{ route('public.queues.index') }}" class="flex items-center">
-                <span class="text-2xl font-bold text-blue-600">SmartQueue</span>
+                <span class="text-2xl font-bold text-blue-600">VirtualQ</span>
             </a>
             <nav class="hidden md:flex space-x-8">
                 <a href="{{ route('public.queues.index') }}" class="text-gray-600 hover:text-blue-600 transition-colors">
@@ -57,12 +57,12 @@
     <!-- Footer -->
     <footer class="bg-white py-6 mt-12 border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
-            &copy; {{ date('Y') }} SmartQueue. Tous droits réservés.
+            &copy; {{ date('Y') }} VirtualQ. Tous droits réservés.
         </div>
     </footer>
 
     @livewireScripts
-    
+
     <!-- Alpine.js -->
     <script src="//unpkg.com/alpinejs" defer></script>
 </body>

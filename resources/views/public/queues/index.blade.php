@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="text-center mb-8 sm:mb-12 px-4">
-        <h1 class="text-4xl sm:text-5xl font-bold text-primary mb-2 sm:mb-3">SmartQueue</h1>
+        <h1 class="text-4xl sm:text-5xl font-bold text-primary mb-2 sm:mb-3">{{ config('app.name', 'VirtualQ') }}</h1>
         <p class="text-lg sm:text-xl text-secondary">Votre solution d'attente intelligente</p>
     </div>
 
@@ -19,9 +19,9 @@
         <form method="POST" action="{{ route('public.queue.find') }}" class="space-y-6">
             @csrf
             <div class="space-y-2">
-                <input type="text" 
-                       name="queue_code" 
-                       placeholder="Code de la file (ex: A1B2C3)" 
+                <input type="text"
+                       name="queue_code"
+                       placeholder="Code de la file (ex: A1B2C3)"
                        class="public-input w-full text-base sm:text-md"
                        required
                        autofocus
@@ -32,7 +32,7 @@
                     <p class="text-red-500 text-sm mt-1 text-left">{{ $message }}</p>
                 @enderror
             </div>
-            
+
             <button type="submit" class="btn-primary w-full">
                 <i class="fas fa-sign-in-alt mr-2"></i>Rejoindre la file
             </button>
@@ -40,7 +40,7 @@
 
         <div class="mt-8 pt-6 border-t border-gray-100">
             <p class="text-sm text-gray-500">
-                Vous êtes un agent ? 
+                Vous êtes un agent ?
                 <a href="{{ route('login') }}" class="text-blue-600 hover:underline">Connectez-vous ici</a>
             </p>
         </div>
