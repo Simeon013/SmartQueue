@@ -69,11 +69,20 @@ class Kernel extends ConsoleKernel
 
     /**
      * Define the application's command schedule.
+     *
+     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
+     * @return void
      */
-        protected function schedule(Schedule $schedule): void
+    protected function schedule(Schedule $schedule): void
     {
         // Fermeture automatique des files d'attente
         $schedule->command('queues:auto-close')
+                 ->everyMinute()
+                 ->withoutOverlapping()
+                 ->runInBackground();
+
+        // Vérifier les tickets en pause toutes les minutes
+        $schedule->command('tickets:check-paused')
                  ->everyMinute()
                  ->withoutOverlapping()
                  ->runInBackground();

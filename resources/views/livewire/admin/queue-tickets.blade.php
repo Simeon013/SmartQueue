@@ -193,6 +193,7 @@
                     <div class="flex items-center">
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
                             @if($this->currentTicket->status === 'waiting') bg-yellow-100 text-yellow-800
+                            @elseif($this->currentTicket->status === 'paused') bg-orange-100 text-orange-800
                             @elseif($this->currentTicket->status === 'called') bg-blue-100 text-blue-800
                             @elseif($this->currentTicket->status === 'served') bg-green-100 text-green-800
                             @else bg-gray-100 text-gray-800
@@ -239,7 +240,7 @@
 
                         <!-- Actions -->
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            @if($this->currentTicket->status === 'waiting')
+                            @if($this->currentTicket->status === 'waiting' || $this->currentTicket->status === 'paused')
                                 <button
                                     wire:click="quickAction('take')"
                                     class="inline-flex justify-center items-center px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-md shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -405,6 +406,7 @@
                                 @php
                                     $statusConfig = [
                                         'waiting' => ['label' => 'En attente', 'icon' => 'clock', 'color' => 'yellow'],
+                                        'paused' => ['label' => 'Sortie momentanée', 'icon' => 'pause', 'color' => 'orange'],
                                         'called' => ['label' => 'Appelé', 'icon' => 'bell', 'color' => 'blue'],
                                         'handled' => ['label' => 'Assigné', 'icon' => 'user-clock', 'color' => 'blue'],
                                         'in_progress' => ['label' => 'En cours de traitement', 'icon' => 'user-clock', 'color' => 'blue'],

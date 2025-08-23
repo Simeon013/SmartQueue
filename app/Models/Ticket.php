@@ -28,15 +28,19 @@ class Ticket extends Model
         'session_id',
         'handled_by',
         'handled_at',
+        'paused_at',
+        'notify_when_close',
     ];
-    
+
     protected $appends = ['position', 'estimated_wait_time', 'actual_wait_time', 'processing_time', 'is_being_handled', 'has_review'];
 
     protected $casts = [
         'wants_notifications' => 'boolean',
+        'notify_when_close' => 'boolean',
         'called_at' => 'datetime',
         'served_at' => 'datetime',
         'handled_at' => 'datetime',
+        'paused_at' => 'datetime',
     ];
 
     public function queue()
@@ -62,7 +66,7 @@ class Ticket extends Model
         }
         return !is_null($this->review) && $this->review->submitted_at !== null;
     }
-    
+
     /**
      * Crée un nouvel avis pour ce ticket.
      */
@@ -78,7 +82,7 @@ class Ticket extends Model
             'token' => Str::uuid(),
         ]);
     }
-    
+
     /**
      * Crée automatiquement un avis lors du traitement d'un ticket
      * Cette méthode est appelée après la mise à jour du statut du ticket
@@ -98,7 +102,7 @@ class Ticket extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
-    
+
     /**
      * L'utilisateur qui gère actuellement ce ticket
      */
@@ -124,11 +128,16 @@ class Ticket extends Model
             return null;
         }
 
-        return $this->queue->tickets()
+        // Compter tous les tickets en attente ou en pause créés avant celui-ci
+        $position = $this->queue->tickets()
             ->where('cycle', $this->cycle)
             ->whereIn('status', ['waiting', 'paused'])
-            ->where('created_at', '<', $this->created_at)
-            ->count() + 1;
+            ->where('created_at', '<=', $this->created_at)
+            ->where('id', '!=', $this->id)
+            ->count();
+
+        // Ajouter 1 car on commence à compter à partir de 1
+        return $position + 1;
     }
 
     /**
@@ -136,13 +145,14 @@ class Ticket extends Model
      */
     public function getEstimatedWaitTimeAttribute()
     {
-        if ($this->status !== 'waiting') {
+        if (!in_array($this->status, ['waiting', 'paused'])) {
             return null;
         }
 
         $ticketsBefore = $this->queue->tickets()
-            ->where('status', 'waiting')
-            ->where('created_at', '<', $this->created_at)
+            ->whereIn('status', ['waiting', 'paused'])
+            ->where('created_at', '<=', $this->created_at)
+            ->where('id', '!=', $this->id)
             ->count();
 
         $avgProcessingTime = $this->queue->tickets()
@@ -183,11 +193,11 @@ class Ticket extends Model
         if ($this->status === 'served' && $this->handled_at && $this->served_at) {
             return $this->served_at->diffInSeconds($this->handled_at);
         }
-        
+
         if ($this->status === 'in_progress' && $this->handled_at) {
             return now()->diffInSeconds($this->handled_at);
         }
-        
+
         return null;
     }
 
@@ -196,7 +206,7 @@ class Ticket extends Model
      */
     public function scopeWaiting($query)
     {
-        return $query->where('status', 'waiting');
+        return $query->whereIn('status', ['waiting', 'paused']);
     }
 
     /**
@@ -206,18 +216,18 @@ class Ticket extends Model
     {
         return $query->where('status', 'called');
     }
-    
+
     /**
      * Scope pour les tickets en cours de traitement par un agent
      */
     public function scopeInProgress($query, ?User $user = null)
     {
         $query = $query->where('status', 'in_progress');
-        
+
         if ($user) {
             $query->where('handled_by', $user->id);
         }
-        
+
         return $query;
     }
 
@@ -236,7 +246,7 @@ class Ticket extends Model
     {
         return $query->where('status', 'skipped');
     }
-    
+
     /**
      * Vérifie si le ticket est en cours de traitement par un agent
      */
@@ -244,7 +254,7 @@ class Ticket extends Model
     {
         return $this->status === 'in_progress' && $this->handled_by !== null;
     }
-    
+
     /**
      * Vérifie si le ticket est en cours de traitement par un agent spécifique
      */
@@ -253,10 +263,10 @@ class Ticket extends Model
         if (!$user) {
             return false;
         }
-        
+
         return $this->is_being_handled && $this->handled_by === $user->id;
     }
-    
+
     /**
      * Attribue le ticket à un agent
      */
@@ -268,7 +278,7 @@ class Ticket extends Model
             'handled_at' => now()
         ]);
     }
-    
+
     /**
      * Libère le ticket (remet en attente)
      */
@@ -280,7 +290,7 @@ class Ticket extends Model
             'handled_at' => null
         ]);
     }
-    
+
     /**
      * Marque le ticket comme traité
      */
@@ -291,7 +301,7 @@ class Ticket extends Model
             'served_at' => now()
         ]);
     }
-    
+
     /**
      * Marque le ticket comme ignoré
      */
@@ -300,7 +310,46 @@ class Ticket extends Model
         return $this->update([
             'status' => 'skipped',
             'handled_by' => null,
-            'handled_at' => null
+            'handled_at' => now()
         ]);
+    }
+
+    /**
+     * Vérifie si l'utilisateur doit être notifié de son retour imminent
+     *
+     * @return bool True si l'utilisateur doit être notifié, false sinon
+     */
+    public function shouldNotifyReturning(): bool
+    {
+        // Vérifier si le ticket est en pause avec notification activée
+        if ($this->status !== 'paused' || !$this->notify_when_close) {
+            return false;
+        }
+
+        // Vérifier si le ticket est toujours lié à une file d'attente valide et active
+        if (!$this->queue || !$this->queue->is_active) {
+            return false;
+        }
+
+        // Compter le nombre de tickets en attente avant celui-ci
+        $position = $this->getPositionAttribute();
+
+        // Si la position est nulle, le ticket n'est pas dans la file d'attente
+        if ($position === null) {
+            return false;
+        }
+
+        // Déterminer le seuil de notification en fonction de la taille de la file d'attente
+        $threshold = 3; // Valeur par défaut
+
+        // Si la file d'attente a un temps d'attente moyen défini, ajuster le seuil
+        if ($this->queue->average_wait_time) {
+            // Par exemple, notifier quand il reste environ 10 minutes d'attente
+            $minutesPerTicket = $this->queue->average_wait_time / 60; // Convertir en minutes
+            $threshold = max(1, min(5, ceil(10 / $minutesPerTicket))); // Entre 1 et 5 tickets
+        }
+
+        // Notifier quand la position est inférieure ou égale au seuil
+        return $position <= $threshold;
     }
 }

@@ -21,7 +21,7 @@ class QueueTickets extends Component
     public $ticketEmail = '';
     public $ticketPhone = '';
     public $ticketNotes = '';
-    
+
     // Propriétés pour le tri
     public $sortField = 'created_at';
     public $sortDirection = 'asc';
@@ -45,7 +45,7 @@ class QueueTickets extends Component
     {
         $ticketService = app(\App\Services\TicketCodeService::class);
         $result = $ticketService->generateNextCode($this->queue);
-        
+
         return $result['code'];
     }
 
@@ -107,7 +107,7 @@ class QueueTickets extends Component
     {
         try {
             $user = Auth::user();
-            
+
             switch ($status) {
                 case 'in_progress':
                     if ($ticket->is_being_handled && !$ticket->isHandledBy($user)) {
@@ -117,24 +117,24 @@ class QueueTickets extends Component
                     $ticket->assignTo($user);
                     session()->flash('success', 'Ticket ' . $ticket->code_ticket . ' pris en charge avec succès');
                     break;
-                    
+
                 case 'served':
                     $ticket->markAsServed();
                     session()->flash('success', 'Ticket ' . $ticket->code_ticket . ' marqué comme traité');
                     break;
-                    
+
                 case 'skipped':
                     $ticket->markAsSkipped();
                     session()->flash('success', 'Ticket ' . $ticket->code_ticket . ' marqué comme ignoré');
                     break;
-                    
+
                 case 'waiting':
                 default:
                     $ticket->release();
                     session()->flash('success', 'Ticket ' . $ticket->code_ticket . ' remis en attente');
                     break;
             }
-            
+
             $this->dispatch('ticket-updated');
 
         } catch (\Exception $e) {
@@ -180,22 +180,23 @@ class QueueTickets extends Component
     public function getCurrentTicketProperty()
     {
         $user = Auth::user();
-        
+
         // Vérifier d'abord si l'utilisateur a déjà un ticket en cours de traitement
         $userTicket = $this->queue->tickets()
             ->where('status', 'in_progress')
             ->where('handled_by', $user->id)
             ->orderBy('handled_at', 'asc')
             ->first();
-            
+
         if ($userTicket) {
             Log::info('Ticket en cours trouvé pour l\'utilisateur', ['ticket' => $userTicket->toArray()]);
             return $userTicket;
         }
-        
+
         // Sinon, chercher un ticket en attente
         $waitingTicket = $this->queue->tickets()
             ->where('status', 'waiting')
+            ->orWhere('status', 'paused')
             ->orderBy('created_at', 'asc')
             ->first();
 
@@ -217,12 +218,12 @@ class QueueTickets extends Component
 
         try {
             $user = Auth::user();
-            
+
             switch ($action) {
                 case 'take':
                     $this->updateTicketStatus($this->currentTicket, 'in_progress');
                     break;
-                    
+
                 case 'validate':
                     $this->updateTicketStatus($this->currentTicket, 'served');
                     break;
@@ -255,26 +256,26 @@ class QueueTickets extends Component
         }
         $this->sortField = $field;
     }
-    
+
     public function render()
     {
         $user = Auth::user();
-        
+
         // Récupérer les tickets en attente et en cours de traitement
         $query = $this->queue->tickets()
             ->whereIn('status', ['waiting', 'in_progress'])
             ->with('handler'); // Charger la relation handler pour afficher l'agent qui gère le ticket
-            
+
         // Appliquer le tri
         if ($this->sortField === 'status') {
-            $query->orderByRaw("CASE 
-                WHEN status = 'in_progress' THEN 1 
+            $query->orderByRaw("CASE
+                WHEN status = 'in_progress' THEN 1
                 WHEN status = 'waiting' THEN 2
             END", $this->sortDirection);
         } else {
             $query->orderBy($this->sortField, $this->sortDirection);
         }
-        
+
         // Calcul des temps moyens avec cache
         $cacheKey = "queue_{$this->queue->id}_stats";
         $stats = Cache::remember($cacheKey, now()->addMinute(), function() {
@@ -317,7 +318,7 @@ class QueueTickets extends Component
                 ]
             ];
         });
-            
+
         return view('livewire.admin.queue-tickets', [
             'tickets' => $query->paginate(10),
             'stats' => $stats,

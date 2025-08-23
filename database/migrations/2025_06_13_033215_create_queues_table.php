@@ -18,6 +18,7 @@ class CreateQueuesTable extends Migration
             $table->foreignId('establishment_id')->constrained()->onDelete('cascade');
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -26,6 +27,8 @@ class CreateQueuesTable extends Migration
     */
     public function down(): void
     {
-        Schema::dropIfExists('queues');
+        Schema::table('queues', function (Blueprint $table) {
+            $table->dropSoftDeletes();
+        });
     }
 }

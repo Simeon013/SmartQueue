@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Events\TicketStatusUpdated;
 
 class QueueController extends Controller
 {
@@ -34,7 +35,7 @@ class QueueController extends Controller
             return redirect()->route('public.ticket.status', ['queue_code' => $queue->code, 'ticket_code' => $ticket->code_ticket]);
         }
 
-        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
+        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting', 'paused')->count();
         return view('public.queues.show', compact('queue', 'waitingTicketsCount'));
     }
 
@@ -83,6 +84,9 @@ class QueueController extends Controller
             'session_id' => $sessionId,
         ]);
 
+        // Diffuser un événement de mise à jour du statut du ticket
+        event(new TicketStatusUpdated($ticket->id, $queue->id, 'waiting'));
+
         return redirect()->route('public.ticket.status', ['queue_code' => $queue->code, 'ticket_code' => $ticket->code_ticket])
             ->with('success', 'Votre ticket ' . $ticket->code_ticket . ' a été créé avec succès !');
     }
@@ -99,7 +103,31 @@ class QueueController extends Controller
             abort(403, 'Accès non autorisé au ticket.');
         }
 
-        return view('public.tickets.status', compact('queue', 'ticket'));
+        // Récupérer les notifications pour cette session
+        $notifications = DB::table('notifications')
+            ->where('notifiable_type', 'session')
+            ->where('notifiable_id', $ticket->session_id)
+            ->whereNull('read_at')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($notification) {
+                $data = json_decode($notification->data, true);
+                return [
+                    'id' => $notification->id,
+                    'message' => $data['message'] ?? 'Notification',
+                    'created_at' => $notification->created_at,
+                    'data' => $data
+                ];
+            });
+
+        // Marquer les notifications comme lues
+        DB::table('notifications')
+            ->where('notifiable_type', 'session')
+            ->where('notifiable_id', $ticket->session_id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return view('public.tickets.status', compact('queue', 'ticket', 'notifications'));
     }
 
     public function cancelTicket(Ticket $ticket)
@@ -112,57 +140,68 @@ class QueueController extends Controller
         // Marquer le ticket comme annulé au lieu de le supprimer
         $ticket->update([
             'status' => 'cancelled',
-            'handled_at' => now()
+            'cancelled_at' => now()
         ]);
+
+        // Diffuser un événement de mise à jour du statut du ticket
+        event(new TicketStatusUpdated($ticket->id, $ticket->queue_id, 'cancelled'));
 
         return redirect()->route('public.queues.index')
             ->with('success', 'Votre ticket a été annulé avec succès.');
     }
 
-    public function pauseTicket(Ticket $ticket)
+    public function pauseTicket(Request $request, Ticket $ticket)
     {
-        // Ensure the ticket belongs to the current session for security
         if ($ticket->session_id !== session()->getId()) {
             abort(403, 'Accès non autorisé pour mettre en pause ce ticket.');
         }
 
-        // Update the ticket status to 'paused'
-        $ticket->update(['status' => 'paused']);
-
-        // Re-fetch data and return the current view
-        $queue = $ticket->queue;
-        $currentServingTicket = $queue->tickets()->where('status', 'called')->orderBy('updated_at', 'desc')->first();
-        $currentServingTicketCode = $currentServingTicket ? $currentServingTicket->code_ticket : 'Aucun ticket en cours de traitement';
-        $currentServingNumber = $currentServingTicket ? $currentServingTicket->number : 'N/A';
-        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
-        $position = $ticket->getPositionAttribute();
-        $estimatedWaitTime = $ticket->getEstimatedWaitTimeAttribute();
-
-        return view('public.tickets.status', compact('queue', 'ticket', 'position', 'estimatedWaitTime', 'currentServingNumber', 'currentServingTicketCode', 'waitingTicketsCount'))
-            ->with('success', 'Votre ticket a été mis en pause momentanément.');
-    }
-
-    public function resumeTicket(Ticket $ticket)
-    {
-        // Ensure the ticket belongs to the current session for security
-        if ($ticket->session_id !== session()->getId()) {
-            abort(403, 'Accès non autorisé pour reprendre ce ticket.');
+        // Vérifier que le ticket est en attente
+        if ($ticket->status !== 'waiting') {
+            return back()->with('error', 'Seuls les tickets en attente peuvent être marqués comme sortis momentanément.');
         }
 
-        // Update the ticket status to 'waiting'
-        $ticket->update(['status' => 'waiting']);
+        // Mettre à jour le statut du ticket
+        $ticket->update([
+            'status' => 'paused',
+            'paused_at' => now(),
+            'notify_when_close' => true // Activer les notifications pour ce ticket
+        ]);
 
-        // Re-fetch data and return the current view
+        // Diffuser un événement de mise à jour du statut du ticket
+        event(new TicketStatusUpdated($ticket->id, $ticket->queue_id, 'paused'));
+
+        return back()->with('success', 'Votre ticket a été marqué comme sorti momentanément. Votre position dans la file est préservée et vous serez notifié lorsque votre tour approchera.');
+    }
+
+    public function resumeTicket(Request $request, Ticket $ticket)
+    {
+        if ($ticket->session_id !== session()->getId()) {
+            abort(403, 'Accès non autorisé pour réactiver ce ticket.');
+        }
+
+        // Vérifier que le ticket est en pause
+        if ($ticket->status !== 'paused') {
+            return back()->with('error', 'Seuls les tickets marqués comme sortis momentanément peuvent être réactivés.');
+        }
+
+        // Récupérer la file d'attente associée au ticket
         $queue = $ticket->queue;
-        $currentServingTicket = $queue->tickets()->where('status', 'called')->orderBy('updated_at', 'desc')->first();
-        $currentServingTicketCode = $currentServingTicket ? $currentServingTicket->code_ticket : 'Aucun ticket en cours de traitement';
-        $currentServingNumber = $currentServingTicket ? $currentServingTicket->number : 'N/A';
-        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
-        $position = $ticket->getPositionAttribute();
-        $estimatedWaitTime = $ticket->getEstimatedWaitTimeAttribute();
 
-        return view('public.tickets.status', compact('queue', 'ticket', 'position', 'estimatedWaitTime', 'currentServingNumber', 'currentServingTicketCode', 'waitingTicketsCount'))
-            ->with('success', 'Votre ticket est de nouveau actif dans la file.');
+        // Remettre le ticket en attente
+        $ticket->update([
+            'status' => 'waiting',
+            'paused_at' => null,
+            'notify_when_close' => false // Désactiver les notifications
+        ]);
+
+        // Diffuser un événement de mise à jour du statut du ticket
+        event(new TicketStatusUpdated($ticket->id, $ticket->queue_id, 'waiting'));
+
+        return redirect()->route('public.ticket.status', [
+            'queue_code' => $queue->code,
+            'ticket_code' => $ticket->code_ticket
+        ])->with('success', 'Votre ticket est de nouveau actif dans la file d\'attente. Votre position a été préservée.');
     }
 
     public function showByCode($code)
@@ -179,7 +218,7 @@ class QueueController extends Controller
             return redirect()->route('public.ticket.status', ['queue_code' => $queue->code, 'ticket_code' => $ticket->code_ticket]);
         }
 
-        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting')->count();
+        $waitingTicketsCount = $queue->tickets()->where('status', 'waiting', 'paused')->count();
         return view('public.queues.show', compact('queue', 'waitingTicketsCount'));
     }
 

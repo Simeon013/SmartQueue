@@ -110,20 +110,20 @@ class TicketController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:waiting,in_progress,served,skipped',
+            'status' => 'required|in:waiting,paused,in_progress,served,skipped',
             'wants_notifications' => 'boolean',
             'notification_channel' => 'required_if:wants_notifications,true|in:email,sms',
         ]);
 
         $user = Auth::user();
         $status = $validated['status'];
-        
+
         // Mise à jour du statut avec gestion multi-agents
         if ($status === 'in_progress') {
             if ($ticket->is_being_handled && !$ticket->isHandledBy($user)) {
                 return back()->with('error', 'Ce ticket est déjà en cours de traitement par un autre agent.');
             }
-            
+
             $ticket->assignTo($user);
         } elseif ($status === 'served') {
             $ticket->markAsServed();
@@ -175,18 +175,18 @@ class TicketController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:waiting,in_progress,served,skipped',
+            'status' => 'required|in:waiting,paused,ining,in_progress,served,skipped',
         ]);
 
         $user = Auth::user();
         $status = $validated['status'];
-        
+
         // Mise à jour du statut avec gestion multi-agents
         if ($status === 'in_progress') {
             if ($ticket->is_being_handled && !$ticket->isHandledBy($user)) {
                 return back()->with('error', 'Ce ticket est déjà en cours de traitement par un autre agent.');
             }
-            
+
             $ticket->assignTo($user);
         } elseif ($status === 'served') {
             $ticket->markAsServed();

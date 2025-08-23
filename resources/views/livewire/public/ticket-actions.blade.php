@@ -6,8 +6,8 @@
             wire:click="pauseTicket" 
             class="w-full flex items-center justify-center px-4 py-3 border border-yellow-300 text-sm font-medium rounded-md text-yellow-700 bg-yellow-50 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
         >
-            <i class="fas fa-pause mr-2"></i>
-            Mettre en pause
+            <i class="fas fa-sign-out-alt mr-2"></i>
+            Sortie momentanée
         </button>
         
         <button 
@@ -23,8 +23,8 @@
             wire:click="resumeTicket" 
             class="w-full flex items-center justify-center px-4 py-3 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
         >
-            <i class="fas fa-play mr-2"></i>
-            Reprendre la file
+            <i class="fas fa-sign-in-alt mr-2"></i>
+            Revenir dans la file
         </button>
         
         <button 

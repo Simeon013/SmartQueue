@@ -7,8 +7,9 @@ use App\Models\Ticket;
 use App\Models\Queue;
 use App\Models\Review;
 use App\Traits\FormatsDuration;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 
 class RealtimeTicketStatus extends Component
@@ -24,25 +25,141 @@ class RealtimeTicketStatus extends Component
     public $currentServingTicketCode;
     public $waitingTicketsCount;
 
+    // Propriétés pour les notifications
+    public $notifications = [];
+    public $showNotificationAlert = false;
+    public $latestNotification = null;
+
     // Propriétés pour le formulaire d'avis
     public $showReviewForm = false;
     public $rating = 0;
     public $comment = '';
     public $reviewSubmitted = false;
-    
+
     // Propriété pour la modale d'annulation
     public $showCancelModal = false;
+
+    /**
+     * Écouteurs d'événements Livewire
+     */
+    protected function getListeners()
+    {
+        $listeners = [
+            "echo-private:queue.{$this->queue->id},TicketStatusUpdated" => 'handleTicketStatusUpdated',
+            "echo-private:session.{$this->ticket->session_id},NotificationCreated" => 'handleNewNotification',
+            'dismissNotification' => 'dismissNotification',
+        ];
+
+        // Si le ticket est en pause, on écoute aussi les mises à jour de la file d'attente
+        if ($this->ticket->status === 'paused') {
+            $listeners["echo-private:queue.{$this->queue->id},.ticket.updated"] = 'handleTicketUpdated';
+        }
+
+        return $listeners;
+    }
+
+    /**
+     * Gère la mise à jour du statut d'un ticket
+     */
+    public function handleTicketStatusUpdated($event)
+    {
+        $this->updateTicketData();
+    }
+
+    /**
+     * Gère les nouvelles notifications
+     */
+    public function handleNewNotification($event)
+    {
+        $this->checkForNotifications();
+    }
+
+    /**
+     * Gère les mises à jour des tickets dans la file d'attente
+     */
+    public function handleTicketUpdated($event)
+    {
+        // Mettre à jour les données du ticket actuel
+        $this->ticket->refresh();
+
+        // Si le ticket n'est plus en pause, arrêter d'écouter les mises à jour
+        if ($this->ticket->status !== 'paused') {
+            $this->getListeners(); // Recharger les écouteurs
+        }
+
+        // Mettre à jour les données affichées
+        $this->updateTicketData();
+
+        // Vérifier s'il y a de nouvelles notifications
+        $this->checkForNotifications();
+    }
 
     public function mount(Ticket $ticket, Queue $queue)
     {
         $this->ticket = $ticket;
         $this->queue = $queue;
         $this->updateTicketData();
+        $this->checkForNotifications();
+    }
+
+    /**
+     * Vérifie et récupère les notifications non lues
+     */
+    public function checkForNotifications()
+    {
+        if (!isset($this->ticket->session_id)) {
+            return;
+        }
+
+        try {
+            // Récupérer les notifications non lues pour cette session
+            $notifications = DB::table('notifications')
+                ->where('notifiable_type', 'session')
+                ->where('notifiable_id', $this->ticket->session_id)
+                ->whereNull('read_at')
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            if ($notifications->isNotEmpty()) {
+                // Transformer les notifications en tableau avec les données nécessaires
+                $this->notifications = $notifications->map(function($notification) {
+                    $data = json_decode($notification->data, true);
+                    return [
+                        'id' => $notification->id,
+                        'message' => $data['message'] ?? 'Notification',
+                        'created_at' => $notification->created_at,
+                        'data' => $data,
+                        'type' => $data['type'] ?? 'info'
+                    ];
+                })->toArray();
+
+                // Mettre à jour la notification la plus récente pour l'affichage
+                $this->latestNotification = $this->notifications[0] ?? null;
+                $this->showNotificationAlert = true;
+
+                // Marquer les notifications comme lues dans la base de données
+                $notificationIds = $notifications->pluck('id')->toArray();
+                if (!empty($notificationIds)) {
+                    DB::table('notifications')
+                        ->whereIn('id', $notificationIds)
+                        ->update(['read_at' => now()]);
+                }
+            }
+        } catch (\Exception $e) {
+            // Journaliser l'erreur mais ne pas interrompre le flux
+            Log::error('Erreur lors de la vérification des notifications: ' . $e->getMessage());
+        }
+    }
+
+    public function dismissNotification()
+    {
+        $this->showNotificationAlert = false;
     }
 
     public function render()
     {
         $this->updateTicketData(); // Update data on each render (including poll)
+        $this->checkForNotifications(); // Vérifier les nouvelles notifications
 
         // Vérifier si on doit afficher le formulaire d'avis
         if ($this->ticket->status === 'served' && !$this->ticket->has_review && !$this->reviewSubmitted) {
@@ -82,7 +199,7 @@ class RealtimeTicketStatus extends Component
                     'rating' => $validatedData['rating'],
                     'comment' => $validatedData['comment'] ?? null,
                     'submitted_at' => now(),
-                    'token' => \Illuminate\Support\Str::uuid(), // Ajout manuel du token
+                    'token' => Str::uuid(), // Ajout manuel du token
                 ]);
 
                 if (!$review) {
@@ -166,7 +283,9 @@ class RealtimeTicketStatus extends Component
 
             $this->waitingTicketsCount = $this->queue->tickets()
                 ->where('status', 'waiting')
+                ->orWhere('status', 'paused')
                 ->count();
+            // dd($this->waitingTicketsCount);
 
         } catch (\Exception $e) {
             Log::error('Erreur lors de la mise à jour des données du ticket', [
