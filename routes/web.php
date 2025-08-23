@@ -31,8 +31,9 @@ Route::post('/q/{ticket}/resume', [App\Http\Controllers\Public\QueueController::
 Route::post('/q/{queue}/join', [App\Http\Controllers\Public\QueueController::class, 'join'])->name('public.queue.join');
 
 
+// Redirection de l'admin vers le tableau de bord
 Route::get('/admin', function () {
-    return view('admin.dashboard');
+    return redirect()->route('admin.dashboard');
 })->middleware(['auth', 'verified'])->name('admin');
 
 Route::middleware('auth')->group(function () {
@@ -42,10 +43,12 @@ Route::middleware('auth')->group(function () {
 });
 
 // Accessible à tous les utilisateurs authentifiés
+// Routes du tableau de bord et gestion des files d'attente
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('dashboard');
+    // Tableau de bord personnalisé selon le rôle
+    Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Gestion des files d'attente
     Route::resource('queues', \App\Http\Controllers\Admin\QueueController::class);
 });
 

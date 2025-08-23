@@ -24,6 +24,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_active',
     ];
 
     /**
@@ -46,6 +47,14 @@ class User extends Authenticatable
         'password' => 'hashed',
         'role' => UserRole::class,
     ];
+
+    /**
+     * Relation avec les tickets traités par cet utilisateur
+     */
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class, 'handled_by');
+    }
 
     /**
      * Get the user's role.
@@ -368,5 +377,13 @@ class User extends Authenticatable
             ->unique(function($item) {
                 return $item->queue_id . '_' . ($item->is_global ?? '0');
             })->values();
+    }
+    
+    /**
+     * Get the queues created by this admin user
+     */
+    public function queues()
+    {
+        return $this->hasMany(Queue::class, 'created_by');
     }
 }
